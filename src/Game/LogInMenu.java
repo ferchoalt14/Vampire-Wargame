@@ -30,6 +30,8 @@ public class LogInMenu extends JFrame {
 
     private CardLayout cardLayout;
     private JPanel cardsPanel;
+    private GameSystem brain;
+    
 
     public LogInMenu() {
 
@@ -38,7 +40,8 @@ public class LogInMenu extends JFrame {
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setResizable(false);
         this.setLocationRelativeTo(null);
-
+        
+        this.brain=new GameSystem();
         ImageIcon logo = new ImageIcon(getClass().getResource("/Images/logo.png"));
         this.setIconImage(logo.getImage());
 
@@ -49,8 +52,8 @@ public class LogInMenu extends JFrame {
 
        //Creacion de paneles
         JPanel menuPanel = buildMenuButtonsPanel();
-        LoginPanel loginPanel = new LoginPanel(() -> cardLayout.show(cardsPanel, "MENU"));
-        RegisterPanel registerPanel = new RegisterPanel(() -> cardLayout.show(cardsPanel, "MENU")); 
+        LoginPanel loginPanel = new LoginPanel(brain, () -> cardLayout.show(cardsPanel, "MENU"));
+        RegisterPanel registerPanel = new RegisterPanel(brain, () -> cardLayout.show(cardsPanel, "MENU")); 
    
         JPanel registerPlaceholder = new JPanel(); 
         registerPlaceholder.setOpaque(false);

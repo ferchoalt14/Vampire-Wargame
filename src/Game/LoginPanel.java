@@ -21,7 +21,7 @@ import java.awt.event.MouseAdapter;
  */
 public class LoginPanel extends JPanel {
 
-    public LoginPanel(Runnable onBack) {
+    public LoginPanel(GameSystem brain, Runnable onBack) {
         setOpaque(false);
         setLayout(new GridBagLayout());
 
@@ -67,7 +67,18 @@ public class LoginPanel extends JPanel {
                 txtBlanc
         ));
 
-        btnVolver.addActionListener(e -> onBack.run());
+        JButton btnIngresar = LogInMenu.createButton("Ingresar");
+        JButton btnVolver = LogInMenu.createButton("Volver al Menú");
+
+        btnVolver.addActionListener(e -> {
+
+            txtUser.setText("");
+            txtPass.setText("");
+
+            if (onBack != null) {
+                onBack.run();
+            }
+        });
 
         formPanel.add(lblTitle);
         formPanel.add(txtUser);
@@ -76,8 +87,36 @@ public class LoginPanel extends JPanel {
         formPanel.add(btnVolver);
 
         add(formPanel);
+
+        btnIngresar.addActionListener(e -> {
+            String user = txtUser.getText();
+            String pass = new String(txtPass.getPassword());
+
+            Player jugador = brain.buscarJugador(user);
+
+            if (jugador == null) {
+                JOptionPane.showMessageDialog(this, "El usuario no existe.", "Error", JOptionPane.ERROR_MESSAGE);
+            } else if (!jugador.getPassword().equals(pass)) {
+                JOptionPane.showMessageDialog(this, "Contraseña incorrecta.", "Error", JOptionPane.ERROR_MESSAGE);
+            } else {
+                // Login correcto
+                brain.setJugadorActivo(jugador);
+                JOptionPane.showMessageDialog(this, "¡Bienvenido de nuevo, " + jugador.getUser() + "!", "Sesión Iniciada", JOptionPane.INFORMATION_MESSAGE);
+                // Aquí podrías redirigir al menú principal del juego
+            }
+        });
+
+        btnVolver.addActionListener(e -> {
+            if (onBack != null) {
+                onBack.run();
+            }
+        });
+
+        formPanel.add(lblTitle);
+        formPanel.add(txtUser);
+        formPanel.add(txtPass);
+        formPanel.add(btnIngresar);
+        formPanel.add(btnVolver);
     }
 
-    JButton btnIngresar = LogInMenu.createButton("Ingresar");
-    JButton btnVolver = LogInMenu.createButton("Volver al Menú");
 }

@@ -8,9 +8,11 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
+import static java.time.Clock.system;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
@@ -23,7 +25,7 @@ import javax.swing.border.TitledBorder;
  */
 public class RegisterPanel extends JPanel {
 
-    public RegisterPanel(Runnable onBack) {
+    public RegisterPanel(GameSystem brain, Runnable onBack) {
         setOpaque(false);
         setLayout(new GridBagLayout());
 
@@ -65,7 +67,43 @@ public class RegisterPanel extends JPanel {
         JButton btnRegistrar = LogInMenu.createButton("Ingresar");
         JButton btnVolver = LogInMenu.createButton("Volver al Menú");
 
-        btnVolver.addActionListener(e -> onBack.run());
+        btnVolver.addActionListener(e -> {
+
+            txtUser.setText("");
+            txtPass.setText("");
+            txtConfirmPass.setText("");
+
+            if (onBack != null) {
+                onBack.run();
+            }
+        });
+
+        btnRegistrar.addActionListener(e -> {
+            String user = txtUser.getText();
+            String pass = new String(txtPass.getPassword());
+            String confirmPass = new String(txtConfirmPass.getPassword());
+
+            // validacion contrasena
+            if (!pass.equals(confirmPass)) {
+                JOptionPane.showMessageDialog(this, "Las contraseñas no coinciden.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            
+            String resultado = brain.crearPlayer(user, pass);
+
+            if (resultado != null) {
+                //si devuelve string y hay error
+                JOptionPane.showMessageDialog(this, resultado, "Error de Registro", JOptionPane.WARNING_MESSAGE);
+            } else {
+                // Si devuelve null, se creo exitosamente
+                JOptionPane.showMessageDialog(this, "¡Cuenta creada. Bienvenido, " + user, "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                txtUser.setText("");
+                txtPass.setText("");
+                txtConfirmPass.setText("");
+                onBack.run();
+            }
+        });
 
         formPanel.add(lblTitle);
         formPanel.add(txtUser);
