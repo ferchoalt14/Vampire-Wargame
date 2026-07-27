@@ -71,29 +71,33 @@ public class LogInMenu extends JFrame {
 
     // Método para armar el panel de botones del menú principal
     private JPanel buildMenuButtonsPanel() {
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.setOpaque(false);
-        buttonPanel.setLayout(new GridLayout(3, 1, 0, 15));
+        JPanel buttonPanel = new JPanel(new GridBagLayout());
+    buttonPanel.setOpaque(false);
 
-        JButton btnIniciarSesion = createButton("Iniciar sesión");
-        JButton btnCrearCuenta = createButton("Crear cuenta");
-        JButton btnSalir = createButton("Salir");
+    // Un subpanel vertical para apilarlos
+    JPanel innerBox = new JPanel(new GridLayout(3, 1, 0, 45));
+    innerBox.setOpaque(false);
 
-        // Cambiar de pantalla al hacer clic
-        btnIniciarSesion.addActionListener(e -> cardLayout.show(cardsPanel, "LOGIN"));
-        btnCrearCuenta.addActionListener(e -> cardLayout.show(cardsPanel, "REGISTER"));
-        btnSalir.addActionListener(e -> System.exit(0));
+    JButton btnIniciarSesion = createButton("Iniciar sesión");
+    JButton btnCrearCuenta = createButton("Crear cuenta");
+    JButton btnSalir = createButton("Salir");
 
-        buttonPanel.add(btnIniciarSesion);
-        buttonPanel.add(btnCrearCuenta);
-        buttonPanel.add(btnSalir);
+    btnIniciarSesion.addActionListener(e -> cardLayout.show(cardsPanel, "LOGIN"));
+    btnCrearCuenta.addActionListener(e -> cardLayout.show(cardsPanel, "REGISTER"));
+    btnSalir.addActionListener(e -> System.exit(0));
 
-        return buttonPanel;
-    }
+    innerBox.add(btnIniciarSesion);
+    innerBox.add(btnCrearCuenta);
+    innerBox.add(btnSalir);
 
+    buttonPanel.add(innerBox);
+
+    return buttonPanel;
+    
+}
     public static JButton createButton(String text) {
         JButton button = new JButton(text);
-        button.setPreferredSize(new Dimension(200, 45));
+        button.setPreferredSize(new Dimension(200,45));
         
         Color colorNormal = new Color(40, 15, 20);
         Color colorHover = new Color(110, 20, 30);
@@ -138,3 +142,6 @@ public class LogInMenu extends JFrame {
         }
     }
 }
+    
+
+    
