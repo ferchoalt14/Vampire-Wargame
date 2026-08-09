@@ -4,7 +4,6 @@
  */
 package Game;
 
-import java.awt.Button;
 import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Cursor;
@@ -31,81 +30,172 @@ public class LogInMenu extends JFrame {
     private CardLayout cardLayout;
     private JPanel cardsPanel;
     private GameSystem brain;
-    
 
     public LogInMenu() {
 
         this.setTitle("Vampire Wargame - Menú de Inicio");
-        this.setSize(500, 500);
-        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        this.setResizable(false);
-        this.setLocationRelativeTo(null);
         
-        this.brain=new GameSystem();
+        // Configuración para pantalla grande e inicio maximizado
+        this.setSize(1280, 720);
+        this.setMinimumSize(new Dimension(1024, 680));
+        this.setExtendedState(JFrame.MAXIMIZED_BOTH); // Maximiza la ventana al iniciar
+        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        this.setResizable(true);
+        this.setLocationRelativeTo(null);
+
+        this.brain = new GameSystem();
         ImageIcon logo = new ImageIcon(getClass().getResource("/Images/logo.png"));
         this.setIconImage(logo.getImage());
 
-        
         cardLayout = new CardLayout();
         cardsPanel = new JPanel(cardLayout);
-        cardsPanel.setOpaque(false);
 
-       //Creacion de paneles
+        // 1. Creación del panel de botones inicial
         JPanel menuPanel = buildMenuButtonsPanel();
-        LoginPanel loginPanel = new LoginPanel(brain, () -> cardLayout.show(cardsPanel, "MENU"));
-        RegisterPanel registerPanel = new RegisterPanel(brain, () -> cardLayout.show(cardsPanel, "MENU")); 
-   
-        JPanel registerPlaceholder = new JPanel(); 
-        registerPlaceholder.setOpaque(false);
 
-        // 3. Registramos cada pantalla 
+        // Declaramos la variable para usarla en las lambdas
+        final MainMenu[] mainMenuRef = new MainMenu[1];
+
+        AccountPanel accountPanel = new AccountPanel(
+                brain,
+                () -> {
+                    if (mainMenuRef[0] != null) {
+                        mainMenuRef[0].resetStatus();
+                    }
+                    this.setTitle("Vampire Wargame - Menú Principal");
+                    cardLayout.show(cardsPanel, "MAIN_MENU");
+                },
+                () -> {
+                    this.setTitle("Vampire Wargame - Menú de Inicio");
+                    cardLayout.show(cardsPanel, "MENU");
+                }
+        );
+
+        // Instancia del nuevo panel de reportes
+        ReportsPanel reportsPanel = new ReportsPanel(
+                brain,
+                () -> {
+                    this.setTitle("Vampire Wargame - Menú Principal");
+                    cardLayout.show(cardsPanel, "MAIN_MENU");
+                }
+        );
+
+        // Instancia del panel del tablero
+        BoardPanel boardPanel = new BoardPanel(
+                brain,
+                () -> {
+                    this.setTitle("Vampire Wargame - Menú Principal");
+                    cardLayout.show(cardsPanel, "MAIN_MENU");
+                }
+        );
+
+        // MainMenu adaptado con sus callbacks
+        MainMenu mainMenuPanel = new MainMenu(
+                brain,
+                () -> {
+                    this.setTitle("Vampire Wargame - Menú de Inicio");
+                    cardLayout.show(cardsPanel, "MENU");
+                },
+                () -> {
+                    accountPanel.actualizarDatos(brain);
+                    this.setTitle("Vampire Wargame - Mi Cuenta");
+                    cardLayout.show(cardsPanel, "ACCOUNT");
+                },
+                () -> {
+                    reportsPanel.cargarRanking(brain);
+                    this.setTitle("Vampire Wargame - Ranking");
+                    cardLayout.show(cardsPanel, "REPORTS");
+                },
+                (oponente) -> {
+                    // Acción que se ejecuta al presionar "Comenzar Batalla"
+                    boardPanel.iniciarNuevaPartida(oponente);
+                    this.setTitle("Vampire Wargame"); // Título limpio al estar en partida
+                    cardLayout.show(cardsPanel, "BOARD");
+                    cardsPanel.revalidate();
+                    cardsPanel.repaint();
+                }
+        );
+
+        mainMenuRef[0] = mainMenuPanel;
+
+        LoginPanel loginPanel = new LoginPanel(
+                brain,
+                () -> {
+                    this.setTitle("Vampire Wargame - Menú de Inicio");
+                    cardLayout.show(cardsPanel, "MENU");
+                },
+                () -> {
+                    mainMenuPanel.resetStatus();
+                    this.setTitle("Vampire Wargame - Menú Principal");
+                    cardLayout.show(cardsPanel, "MAIN_MENU");
+                }
+        );
+
+        RegisterPanel registerPanel = new RegisterPanel(brain, () -> {
+            this.setTitle("Vampire Wargame - Menú de Inicio");
+            cardLayout.show(cardsPanel, "MENU");
+        });
+
+        // 2. Agregar los paneles al CardLayout
         cardsPanel.add(menuPanel, "MENU");
         cardsPanel.add(loginPanel, "LOGIN");
         cardsPanel.add(registerPanel, "REGISTER");
+        cardsPanel.add(mainMenuPanel, "MAIN_MENU");
+        cardsPanel.add(accountPanel, "ACCOUNT");
+        cardsPanel.add(reportsPanel, "REPORTS");
+        cardsPanel.add(boardPanel, "BOARD");
 
-        // 4. Ponemos todo dentro del fondo
-        BackgroundPanel mainBackground = new BackgroundPanel();
-        mainBackground.setLayout(new GridBagLayout());
-        mainBackground.add(cardsPanel);
-
-        this.setContentPane(mainBackground);
+        this.setContentPane(cardsPanel);
         this.setVisible(true);
     }
 
-    // Método para armar el panel de botones del menú principal
     private JPanel buildMenuButtonsPanel() {
-        JPanel buttonPanel = new JPanel(new GridBagLayout());
-    buttonPanel.setOpaque(false);
+        JPanel buttonPanel = new JPanel(new GridBagLayout()) {
+            private final Image fondo = new ImageIcon(getClass().getResource("/Images/MenuPrin.png")).getImage();
 
-    // Un subpanel vertical para apilarlos
-    JPanel innerBox = new JPanel(new GridLayout(3, 1, 0, 45));
-    innerBox.setOpaque(false);
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                if (fondo != null) {
+                    g.drawImage(fondo, 0, 0, getWidth(), getHeight(), this);
+                }
+            }
+        };
 
-    JButton btnIniciarSesion = createButton("Iniciar sesión");
-    JButton btnCrearCuenta = createButton("Crear cuenta");
-    JButton btnSalir = createButton("Salir");
+        JPanel innerBox = new JPanel(new GridLayout(3, 1, 0, 45));
+        innerBox.setOpaque(false);
 
-    btnIniciarSesion.addActionListener(e -> cardLayout.show(cardsPanel, "LOGIN"));
-    btnCrearCuenta.addActionListener(e -> cardLayout.show(cardsPanel, "REGISTER"));
-    btnSalir.addActionListener(e -> System.exit(0));
+        JButton btnIniciarSesion = createButton("Iniciar sesión");
+        JButton btnCrearCuenta = createButton("Crear cuenta");
+        JButton btnSalir = createButton("Salir");
 
-    innerBox.add(btnIniciarSesion);
-    innerBox.add(btnCrearCuenta);
-    innerBox.add(btnSalir);
+        btnIniciarSesion.addActionListener(e -> {
+            this.setTitle("Vampire Wargame - Iniciar Sesión");
+            cardLayout.show(cardsPanel, "LOGIN");
+        });
+        btnCrearCuenta.addActionListener(e -> {
+            this.setTitle("Vampire Wargame - Registrarse");
+            cardLayout.show(cardsPanel, "REGISTER");
+        });
+        btnSalir.addActionListener(e -> System.exit(0));
 
-    buttonPanel.add(innerBox);
+        innerBox.add(btnIniciarSesion);
+        innerBox.add(btnCrearCuenta);
+        innerBox.add(btnSalir);
 
-    return buttonPanel;
-    
-}
+        buttonPanel.add(innerBox);
+
+        return buttonPanel;
+    }
+
     public static JButton createButton(String text) {
         JButton button = new JButton(text);
-        button.setPreferredSize(new Dimension(200,45));
-        
+        button.setPreferredSize(new Dimension(200, 45));
+
         Color colorNormal = new Color(40, 15, 20);
         Color colorHover = new Color(110, 20, 30);
         Color colorTexto = new Color(230, 220, 220);
-        
+
         button.setFont(new Font("Georgia", Font.BOLD, 15));
         button.setBackground(colorNormal);
         button.setForeground(colorTexto);
@@ -127,24 +217,4 @@ public class LogInMenu extends JFrame {
 
         return button;
     }
-
-    private class BackgroundPanel extends JPanel {
-        private final Image fondo;
-
-        public BackgroundPanel() {
-            ImageIcon image = new ImageIcon(getClass().getResource("/Images/MenuPrin.png"));
-            this.fondo = image.getImage();
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            super.paintComponent(g);
-            if (fondo != null) {
-                g.drawImage(fondo, 0, 0, getWidth(), getHeight(), this);
-            }
-        }
-    }
 }
-    
-
-    

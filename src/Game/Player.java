@@ -5,18 +5,19 @@
 package Game;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 /**
  *
  * @author User
  */
 public class Player {
-        public String user;
+    public String user;
     public String password;
-    public int puntos =0;
+    public int puntos = 0;
     public LocalDateTime fechaIngreso;
-    public boolean activo =true;
-    
+    public boolean activo = true;
+
     public Player(String username, String password) {
         this.user = username;
         this.password = password;
@@ -53,12 +54,23 @@ public class Player {
         return fechaIngreso;
     }
 
+    // Método formateador de fecha para la interfaz
+    public String getFechaIngresoFormateada() {
+        if (fechaIngreso == null) return "-";
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+        return fechaIngreso.format(formatter);
+    }
+
     public void setFechaIngreso(LocalDateTime fechaIngreso) {
         this.fechaIngreso = fechaIngreso;
     }
 
     public boolean isActivo() {
         return activo;
+    }
+
+    public void setActivo(boolean activo) {
+        this.activo = activo;
     }
 
     public static boolean esPasswordValido(String pass) {
@@ -69,4 +81,3 @@ public class Player {
         this.puntos += 3;  
     }
 }
-

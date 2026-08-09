@@ -6,17 +6,19 @@ package Game;
 
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.Graphics;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
-import static java.time.Clock.system;
+import java.awt.Image;
 import javax.swing.BorderFactory;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
+import javax.swing.Timer;
 import javax.swing.border.TitledBorder;
 
 /**
@@ -25,11 +27,16 @@ import javax.swing.border.TitledBorder;
  */
 public class RegisterPanel extends JPanel {
 
+    private final Image fondo;
+    private final JLabel lblMessage;
+
     public RegisterPanel(GameSystem brain, Runnable onBack) {
-        setOpaque(false);
+        this.fondo = new ImageIcon(getClass().getResource("/Images/MenuPrin.png")).getImage();
+
         setLayout(new GridBagLayout());
 
-        JPanel formPanel = new JPanel(new GridLayout(6, 1, 12, 12));
+     
+        JPanel formPanel = new JPanel(new GridLayout(7, 1, 10, 10));
         formPanel.setOpaque(false);
 
         Color fondoCajas = new Color(30, 30, 30);
@@ -40,7 +47,6 @@ public class RegisterPanel extends JPanel {
         lblTitle.setForeground(txtBlanc);
         lblTitle.setFont(new Font("Georgia", Font.BOLD, 22));
 
-        //usuario
         JTextField txtUser = new JTextField(15);
         txtUser.setBackground(fondoCajas);
         txtUser.setForeground(txtBlanc);
@@ -48,14 +54,13 @@ public class RegisterPanel extends JPanel {
         txtUser.setFont(new Font("Georgia", Font.PLAIN, 14));
         txtUser.setBorder(createCustomBorder("Nuevo Usuario", bordeRojo, txtBlanc));
 
-        //contrasena
         JPasswordField txtPass = new JPasswordField(15);
         txtPass.setBackground(fondoCajas);
         txtPass.setForeground(txtBlanc);
         txtPass.setCaretColor(Color.WHITE);
         txtPass.setFont(new Font("Georgia", Font.PLAIN, 14));
         txtPass.setBorder(createCustomBorder("Contraseña", bordeRojo, txtBlanc));
-        //confirmarla
+
         JPasswordField txtConfirmPass = new JPasswordField(15);
         txtConfirmPass.setBackground(fondoCajas);
         txtConfirmPass.setForeground(txtBlanc);
@@ -63,15 +68,18 @@ public class RegisterPanel extends JPanel {
         txtConfirmPass.setFont(new Font("Georgia", Font.PLAIN, 14));
         txtConfirmPass.setBorder(createCustomBorder("Confirmar Contraseña", bordeRojo, txtBlanc));
 
-        //botones
+        // Label para mostrar errores o confirmaciones directamente en la pantalla
+        lblMessage = new JLabel(" ", SwingConstants.CENTER);
+        lblMessage.setFont(new Font("Georgia", Font.BOLD, 12));
+
         JButton btnRegistrar = LogInMenu.createButton("Ingresar");
         JButton btnVolver = LogInMenu.createButton("Volver al Menú");
 
         btnVolver.addActionListener(e -> {
-
             txtUser.setText("");
             txtPass.setText("");
             txtConfirmPass.setText("");
+            lblMessage.setText(" ");
 
             if (onBack != null) {
                 onBack.run();
@@ -83,25 +91,30 @@ public class RegisterPanel extends JPanel {
             String pass = new String(txtPass.getPassword());
             String confirmPass = new String(txtConfirmPass.getPassword());
 
-            // validacion contrasena
             if (!pass.equals(confirmPass)) {
-                JOptionPane.showMessageDialog(this, "Las contraseñas no coinciden.", "Error", JOptionPane.ERROR_MESSAGE);
+                mostrarMensaje("Las contraseñas no coinciden.", new Color(255, 100, 100));
                 return;
             }
 
-            
             String resultado = brain.crearPlayer(user, pass);
 
             if (resultado != null) {
-                //si devuelve string y hay error
-                JOptionPane.showMessageDialog(this, resultado, "Error de Registro", JOptionPane.WARNING_MESSAGE);
+                mostrarMensaje(resultado, new Color(255, 100, 100));
             } else {
-                // Si devuelve null, se creo exitosamente
-                JOptionPane.showMessageDialog(this, "¡Cuenta creada. Bienvenido, " + user, "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                mostrarMensaje("¡Cuenta creada con éxito!", new Color(100, 255, 100));
                 txtUser.setText("");
                 txtPass.setText("");
                 txtConfirmPass.setText("");
-                onBack.run();
+
+                // Retardo breve para visualizar la confirmación antes de volver
+                Timer timer = new Timer(800, evt -> {
+                    lblMessage.setText(" ");
+                    if (onBack != null) {
+                        onBack.run();
+                    }
+                });
+                timer.setRepeats(false);
+                timer.start();
             }
         });
 
@@ -109,10 +122,16 @@ public class RegisterPanel extends JPanel {
         formPanel.add(txtUser);
         formPanel.add(txtPass);
         formPanel.add(txtConfirmPass);
+        formPanel.add(lblMessage);
         formPanel.add(btnRegistrar);
         formPanel.add(btnVolver);
 
         add(formPanel);
+    }
+
+    private void mostrarMensaje(String texto, Color color) {
+        lblMessage.setForeground(color);
+        lblMessage.setText(texto);
     }
 
     private TitledBorder createCustomBorder(String title, Color borderColor, Color textColor) {
@@ -124,5 +143,13 @@ public class RegisterPanel extends JPanel {
                 new Font("Georgia", Font.BOLD, 12),
                 textColor
         );
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        if (fondo != null) {
+            g.drawImage(fondo, 0, 0, getWidth(), getHeight(), this);
+        }
     }
 }

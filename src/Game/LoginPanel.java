@@ -5,27 +5,30 @@
 package Game;
 
 import java.awt.Color;
-import java.awt.Cursor;
 import java.awt.Font;
+import java.awt.Graphics;
 import javax.swing.*;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
-import java.awt.event.MouseEvent;
+import java.awt.Image;
 import javax.swing.JPanel;
 import javax.swing.border.TitledBorder;
-import java.awt.event.MouseAdapter;
 
 /**
  *
  * @author User
  */
 public class LoginPanel extends JPanel {
+private final Image fondo;
+    private final JLabel lblMessage;
 
-    public LoginPanel(GameSystem brain, Runnable onBack) {
-        setOpaque(false);
+    public LoginPanel(GameSystem brain, Runnable onBack, Runnable onLoginSucces) {
+        this.fondo = new ImageIcon(getClass().getResource("/Images/MenuPrin.png")).getImage();
+
         setLayout(new GridBagLayout());
 
-        JPanel formPanel = new JPanel(new GridLayout(5, 1, 10, 10));
+        // Aumentado a 6 filas para incluir el mensaje integrado
+        JPanel formPanel = new JPanel(new GridLayout(6, 1, 10, 10));
         formPanel.setOpaque(false);
 
         Color fondoCajas = new Color(30, 30, 30);
@@ -41,7 +44,6 @@ public class LoginPanel extends JPanel {
         txtUser.setForeground(txtBlanc);
         txtUser.setCaretColor(Color.WHITE);
         txtUser.setFont(new Font("Georgia", Font.PLAIN, 14));
-
         txtUser.setBorder(BorderFactory.createTitledBorder(
                 BorderFactory.createLineBorder(bordeRojo, 2),
                 "Usuario",
@@ -51,13 +53,11 @@ public class LoginPanel extends JPanel {
                 txtBlanc
         ));
 
-        // 3. Caja de texto para la Contraseña
         JPasswordField txtPass = new JPasswordField(15);
         txtPass.setBackground(fondoCajas);
         txtPass.setForeground(txtBlanc);
         txtPass.setCaretColor(Color.WHITE);
         txtPass.setFont(new Font("Georgia", Font.PLAIN, 14));
-
         txtPass.setBorder(BorderFactory.createTitledBorder(
                 BorderFactory.createLineBorder(bordeRojo, 2),
                 "Contraseña",
@@ -67,56 +67,76 @@ public class LoginPanel extends JPanel {
                 txtBlanc
         ));
 
+        // Label integrado para mostrar los mensajes en pantalla
+        lblMessage = new JLabel(" ", SwingConstants.CENTER);
+        lblMessage.setFont(new Font("Georgia", Font.BOLD, 12));
+
         JButton btnIngresar = LogInMenu.createButton("Ingresar");
         JButton btnVolver = LogInMenu.createButton("Volver al Menú");
 
         btnVolver.addActionListener(e -> {
-
             txtUser.setText("");
             txtPass.setText("");
-
+            lblMessage.setText(" ");
             if (onBack != null) {
                 onBack.run();
             }
         });
 
-        formPanel.add(lblTitle);
-        formPanel.add(txtUser);
-        formPanel.add(txtPass);
-        formPanel.add(btnIngresar);
-        formPanel.add(btnVolver);
-
-        add(formPanel);
-
         btnIngresar.addActionListener(e -> {
-            String user = txtUser.getText();
+            String user = txtUser.getText().trim();
             String pass = new String(txtPass.getPassword());
+
+            if (user.isEmpty() || pass.isEmpty()) {
+                mostrarMensaje("Completa todos los campos.", new Color(255, 100, 100));
+                return;
+            }
 
             Player jugador = brain.buscarJugador(user);
 
             if (jugador == null) {
-                JOptionPane.showMessageDialog(this, "El usuario no existe.", "Error", JOptionPane.ERROR_MESSAGE);
+                mostrarMensaje("El usuario no existe.", new Color(255, 100, 100));
             } else if (!jugador.getPassword().equals(pass)) {
-                JOptionPane.showMessageDialog(this, "Contraseña incorrecta.", "Error", JOptionPane.ERROR_MESSAGE);
+                mostrarMensaje("Contraseña incorrecta.", new Color(255, 100, 100));
             } else {
-                // Login correcto
                 brain.setJugadorActivo(jugador);
-                JOptionPane.showMessageDialog(this, "¡Bienvenido de nuevo, " + jugador.getUser() + "!", "Sesión Iniciada", JOptionPane.INFORMATION_MESSAGE);
-                // Aquí podrías redirigir al menú principal del juego
-            }
-        });
+                mostrarMensaje("¡Bienvenido, " + jugador.getUser() + "!", new Color(100, 255, 100));
 
-        btnVolver.addActionListener(e -> {
-            if (onBack != null) {
-                onBack.run();
+                txtUser.setText("");
+                txtPass.setText("");
+
+                // Retardo breve para que el usuario pueda ver el mensaje de bienvenida
+                Timer timer = new Timer(700, evt -> {
+                    lblMessage.setText(" ");
+                    if (onLoginSucces != null) {
+                        onLoginSucces.run();
+                    }
+                });
+                timer.setRepeats(false);
+                timer.start();
             }
         });
 
         formPanel.add(lblTitle);
         formPanel.add(txtUser);
         formPanel.add(txtPass);
+        formPanel.add(lblMessage);
         formPanel.add(btnIngresar);
         formPanel.add(btnVolver);
+
+        add(formPanel);
     }
 
+    private void mostrarMensaje(String texto, Color color) {
+        lblMessage.setForeground(color);
+        lblMessage.setText(texto);
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        if (fondo != null) {
+            g.drawImage(fondo, 0, 0, getWidth(), getHeight(), this);
+        }
+    }
 }
