@@ -55,7 +55,7 @@ public abstract class Piece {
         }
     }
 
-    // Funciones finales (Requisito Técnico: Métodos Finales)
+    // Funciones finales 
     public final ImageIcon getIcon() {
         return icon;
     }
@@ -84,7 +84,7 @@ public abstract class Piece {
         return this.vida > 0;
     }
 
-    // Aplicación de daño respetando orden: primero escudo, luego vida
+    // Aplicación de daño 
     public void recibirDano(int dano, boolean ignorarEscudo) {
         if (ignorarEscudo) {
             this.vida -= dano;
@@ -106,6 +106,6 @@ public abstract class Piece {
         this.vida += puntos;
     }
 
-    // Método abstracto obligatorio (Requisito Técnico: Función Abstracta)
+    // Método abstracto 
     public abstract boolean esMovimientoValido(int origenFila, int origenCol, int destinoFila, int destinoCol);
 }

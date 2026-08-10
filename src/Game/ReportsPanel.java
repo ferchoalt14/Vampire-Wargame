@@ -115,7 +115,7 @@ public class ReportsPanel extends JPanel {
         add(containerPanel);
     }
 
-    // Carga los datos usando el método recursivo de GameSystem
+    // Carga los datos usando el método recursivo 
     public void cargarRanking(GameSystem brain) {
         tableModel.setRowCount(0); // Limpiar filas
         ArrayList<Player> ranking = brain.getRanking();
