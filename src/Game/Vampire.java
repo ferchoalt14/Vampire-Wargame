@@ -4,10 +4,6 @@
  */
 package Game;
 
-/**
- *
- * @author User
- */
 public class Vampire extends Piece {
     public Vampire(String bando) {
         // Vampiro: Ataque 3, Vida 4, Escudo 5
@@ -22,7 +18,7 @@ public class Vampire extends Piece {
         // El Vampiro se desplaza 1 casilla adyacente en cualquier dirección
         return (difFila <= 1 && difCol <= 1) && !(difFila == 0 && difCol == 0);
     }
-    
+
     public void chuparSangre(Piece enemigo) {
         if (enemigo != null && enemigo.estaViva()) {
             // Le resta 1 punto de vida directo al rival y cura 1 al Vampiro

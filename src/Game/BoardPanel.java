@@ -1,4 +1,4 @@
-/*
+ /*
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
@@ -20,8 +20,8 @@ import javax.swing.JLabel;
 import javax.swing.JLayeredPane;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
-import javax.swing.ToolTipManager;
 import javax.swing.Timer;
+import javax.swing.ToolTipManager;
 
 public class BoardPanel extends JPanel implements RuletaPanel.OnRuletaFinishedListener {
 
@@ -268,7 +268,6 @@ public class BoardPanel extends JPanel implements RuletaPanel.OnRuletaFinishedLi
             verificarMuertesYLimpiarZombies("NEGRO");
             actualizarTableroVisual();
 
-            // Verificamos si la eliminación previa de zombies u otra pieza provocó una victoria
             if (verificarCondicionVictoria()) {
                 return;
             }
@@ -367,6 +366,8 @@ public class BoardPanel extends JPanel implements RuletaPanel.OnRuletaFinishedLi
         return tipos;
     }
 
+    // --- MÉTODOS DE LA INTERFAZ OnRuletaFinishedListener CON @Override CORRECTOS ---
+
     @Override
     public void onResultadoObtenido(String tipoPieza) {
         try {
@@ -375,7 +376,7 @@ public class BoardPanel extends JPanel implements RuletaPanel.OnRuletaFinishedLi
                 this.tipoPiezaPermitida = tipoPieza;
                 ruletaPanel.deshabilitarBotonGiro();
                 
-                String opcionesTexto = "";
+                String opcionesTexto;
                 switch (tipoPieza) {
                     case "Muerte":
                         opcionesTexto = "¡Obtuviste Muerte! Puedes mover la Muerte, mover a un Zombie, atacar o invocar un Zombie.";
@@ -443,6 +444,8 @@ public class BoardPanel extends JPanel implements RuletaPanel.OnRuletaFinishedLi
         resaltarObjetivosChuparSangre();
         ruletaPanel.mostrarMensajeEstado("¡CHUPAR SANGRE! Selecciona una pieza enemiga adyacente para drenar 1 punto de vida.", new Color(255, 105, 180));
     }
+
+    // --- LÓGICA INTERNA DE JUEGO ---
 
     private boolean validarAtaqueDistanciaRecursivo(int fOrigen, int cOrigen, int df, int dc, int paso, int maxPaso) {
         int fActual = fOrigen + (df * paso);

@@ -1,63 +1,29 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package Game;
 
+import java.awt.BasicStroke;
+import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.GridLayout;
+import java.awt.Image;
 import java.awt.Insets;
+import java.awt.RenderingHints;
+import java.net.URL;
 import java.util.List;
 import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
+import javax.swing.Timer;
 
 public class RuletaPanel extends JPanel {
-
-    private final JLabel lblTurno;
-    private final RuletaWheel ruedaGrafica;
-    private final JLabel lblResultado;
-    private final JLabel lblGirosRestantes;
-    private final JLabel lblMensajeEstado;
-    private final JButton btnGirar;
-
-    private final JLabel lblStatsPieza;
-    private final JButton btnAtacar;
-    private final JButton btnInvocarZombie;
-    private final JButton btnChuparSangre;
-
-    /** Orden de tipos que representa la ruleta (única fuente de verdad, ver RuletaWheel). */
-    private static final String[] TIPOS_RULETA = RuletaWheel.ORDEN_TIPOS;
-
-    private String resultadoSeleccionado = null;
-    private String bandoActual = "BLANCO";
-
-    private int girosRestantes = 1;
-    private OnRuletaFinishedListener listener;
 
     public interface OnRuletaFinishedListener {
         void onResultadoObtenido(String tipoPieza);
@@ -67,285 +33,408 @@ public class RuletaPanel extends JPanel {
         void onSolicitarChuparSangre();
     }
 
+    private OnRuletaFinishedListener listener;
+
+    private final JLabel lblTurno;
+    private final JLabel lblGiros;
+    private final JLabel lblMensaje;
+    private final JPanel panelMensajeContenedor;
+    private final JButton btnGirar;
+
+    private final JPanel panelAcciones;
+    private final JButton btnAtacar;
+    private final JButton btnChuparSangre;
+    private final JButton btnInvocarZombie;
+
+    private final JLabel lblNombrePieza;
+    private final JLabel lblVida;
+    private final JLabel lblAtaque;
+    private final JLabel lblEscudo;
+
+    private int girosRestantes = 0;
+    private double anguloActual = 0;
+    private Timer timerGiro;
+    private boolean girando = false;
+    private String bandoActual = "BLANCO";
+
+    private final String[] secciones = {"Hombre Lobo", "Muerte", "Vampiro", "Hombre Lobo", "Muerte", "Vampiro"};
+    private final Color[] colores = {
+        new Color(75, 20, 30), new Color(30, 20, 45), new Color(90, 30, 25),
+        new Color(75, 20, 30), new Color(30, 20, 45), new Color(90, 30, 25)
+    };
+
+    private Image imgLoboB, imgLoboN;
+    private Image imgVampiroB, imgVampiroN;
+    private Image imgMuerteB, imgMuerteN;
+
     public RuletaPanel() {
-        // Panel contenedor: apila verticalmente dos tarjetas independientes
-        // (la ruleta y la info/acciones), una debajo de la otra, sin que se
-        // encimen ni se aplasten entre sí.
-        setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         setOpaque(false);
-        setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
+        setLayout(new GridBagLayout());
 
-        JPanel tarjetaRuleta = crearTarjeta();
-        JPanel tarjetaInfo = crearTarjeta();
+        cargarImagenesIconos();
 
-        // ---------- Contenido de la tarjeta "Ruleta" ----------
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(3, 4, 3, 4);
-        gbc.gridx = 0;
+        gbc.insets = new Insets(4, 4, 4, 4);
         gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.gridx = 0;
 
-        lblTurno = new JLabel("Turno: ---", SwingConstants.CENTER);
-        lblTurno.setForeground(new Color(230, 230, 230));
-        lblTurno.setFont(new Font("Georgia", Font.BOLD, 14));
+        // Panel de Turno y Giros
+        JPanel headerPanel = crearPanelGotico();
+        headerPanel.setLayout(new GridLayout(2, 1, 2, 2));
 
-        JLabel lblTitulo = new JLabel("RULETA DE ACCIÓN", SwingConstants.CENTER);
-        lblTitulo.setForeground(new Color(210, 170, 110));
-        lblTitulo.setFont(new Font("Georgia", Font.BOLD, 13));
+        lblTurno = new JLabel("Turno de: -", SwingConstants.CENTER);
+        lblTurno.setFont(new Font("Georgia", Font.BOLD, 13));
+        lblTurno.setForeground(new Color(240, 220, 180));
 
-        ruedaGrafica = new RuletaWheel();
+        lblGiros = new JLabel("Giros disponibles: 0", SwingConstants.CENTER);
+        lblGiros.setFont(new Font("Georgia", Font.ITALIC, 11));
+        lblGiros.setForeground(new Color(180, 180, 180));
 
-        // La fila de la ruleta NO se estira/encoge horizontalmente como las demás,
-        // para que conserve siempre su tamaño fijo (ver RuletaWheel).
-        GridBagConstraints gbcRueda = (GridBagConstraints) gbc.clone();
-        gbcRueda.fill = GridBagConstraints.NONE;
+        headerPanel.add(lblTurno);
+        headerPanel.add(lblGiros);
 
-        lblResultado = new JLabel("¡Gira la ruleta!", SwingConstants.CENTER);
-        lblResultado.setForeground(Color.WHITE);
-        lblResultado.setFont(new Font("Georgia", Font.ITALIC, 13));
+        gbc.gridy = 0;
+        add(headerPanel, gbc);
 
-        lblGirosRestantes = new JLabel("Giros restantes: 1", SwingConstants.CENTER);
-        lblGirosRestantes.setForeground(new Color(180, 180, 180));
-        lblGirosRestantes.setFont(new Font("Georgia", Font.PLAIN, 11));
+        // Canvas de la Ruleta
+        WheelCanvas wheelCanvas = new WheelCanvas();
+        wheelCanvas.setPreferredSize(new Dimension(180, 180));
+        wheelCanvas.setMinimumSize(new Dimension(180, 180));
+        gbc.gridy = 1;
+        gbc.anchor = GridBagConstraints.CENTER;
+        add(wheelCanvas, gbc);
 
-        btnGirar = LogInMenu.createButton("Girar Ruleta");
-        btnGirar.setPreferredSize(new Dimension(150, 32));
+        // Botón Girar Ruleta
+        btnGirar = crearBotonEstilizado("Girar Ruleta", new Color(130, 30, 40));
+        btnGirar.setPreferredSize(new Dimension(160, 34));
         btnGirar.addActionListener(e -> iniciarGiro());
 
-        gbc.gridy = 0; tarjetaRuleta.add(lblTurno, gbc);
-        gbc.gridy = 1; tarjetaRuleta.add(lblTitulo, gbc);
-        gbcRueda.gridy = 2; tarjetaRuleta.add(ruedaGrafica, gbcRueda);
-        gbc.gridy = 3; tarjetaRuleta.add(lblResultado, gbc);
-        gbc.gridy = 4; tarjetaRuleta.add(lblGirosRestantes, gbc);
-        gbc.gridy = 5; tarjetaRuleta.add(btnGirar, gbc);
+        gbc.gridy = 2;
+        add(btnGirar, gbc);
 
-        // ---------- Contenido de la tarjeta "Info y acciones" ----------
-        GridBagConstraints gbc2 = new GridBagConstraints();
-        gbc2.insets = new Insets(3, 4, 3, 4);
-        gbc2.gridx = 0;
-        gbc2.fill = GridBagConstraints.HORIZONTAL;
+        // Panel Fijo de Advertencias / Estado
+        panelMensajeContenedor = crearPanelGotico();
+        panelMensajeContenedor.setLayout(new BorderLayout());
+        
+        // Fijar dimensiones strictly para evitar redimensionamientos
+        Dimension dimMensaje = new Dimension(220, 42);
+        panelMensajeContenedor.setPreferredSize(dimMensaje);
+        panelMensajeContenedor.setMinimumSize(dimMensaje);
+        panelMensajeContenedor.setMaximumSize(dimMensaje);
 
-        JLabel lblTituloInfo = new JLabel("ESTADO Y ACCIONES", SwingConstants.CENTER);
-        lblTituloInfo.setForeground(new Color(210, 170, 110));
-        lblTituloInfo.setFont(new Font("Georgia", Font.BOLD, 13));
+        lblMensaje = new JLabel("¡Gira la ruleta para comenzar!", SwingConstants.CENTER);
+        lblMensaje.setFont(new Font("Georgia", Font.BOLD, 11));
+        lblMensaje.setForeground(Color.LIGHT_GRAY);
 
-        lblMensajeEstado = new JLabel("<html><center>Selecciona 'Girar' para iniciar turno.</center></html>", SwingConstants.CENTER);
-        lblMensajeEstado.setForeground(new Color(220, 190, 120));
-        lblMensajeEstado.setFont(new Font("Georgia", Font.PLAIN, 11));
-        lblMensajeEstado.setPreferredSize(new Dimension(260, 45));
+        panelMensajeContenedor.add(lblMensaje, BorderLayout.CENTER);
 
-        lblStatsPieza = new JLabel("<html><center><b>STATS FICHA SELECCIONADA</b><br>Vida: - | Escudo: - | Atq: -</center></html>", SwingConstants.CENTER);
-        lblStatsPieza.setForeground(new Color(180, 220, 255));
-        lblStatsPieza.setFont(new Font("Georgia", Font.PLAIN, 11));
+        gbc.gridy = 3;
+        add(panelMensajeContenedor, gbc);
 
-        btnAtacar = LogInMenu.createButton("Atacar");
-        btnAtacar.setPreferredSize(new Dimension(80, 28));
-        btnAtacar.setEnabled(false);
-        btnAtacar.setVisible(false);
+        // Panel Contenedor de Acciones
+        panelAcciones = crearPanelGotico();
+        panelAcciones.setLayout(new GridLayout(3, 1, 6, 6));
+        panelAcciones.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(new Color(140, 40, 50), 1),
+                " Acciones Disponibles ",
+                0, 0,
+                new Font("Georgia", Font.BOLD, 11),
+                new Color(212, 175, 55)
+            ),
+            BorderFactory.createEmptyBorder(8, 10, 10, 10)
+        ));
+
+        btnAtacar = crearBotonEstilizado("Atacar", new Color(110, 25, 35));
+        btnChuparSangre = crearBotonEstilizado("Chupar Sangre", new Color(120, 30, 80));
+        btnInvocarZombie = crearBotonEstilizado("Invocar Zombie", new Color(30, 90, 100));
+
         btnAtacar.addActionListener(e -> {
-            try {
-                if (listener != null) listener.onSolicitarAtaque();
-            } catch (Exception ex) {
-                mostrarMensajeEstado("No se pudo iniciar el ataque.", Color.RED);
-            }
+            if (listener != null) listener.onSolicitarAtaque();
         });
-
-        btnInvocarZombie = LogInMenu.createButton("Invocar Zombie");
-        btnInvocarZombie.setPreferredSize(new Dimension(130, 28));
-        btnInvocarZombie.setEnabled(false);
-        btnInvocarZombie.setVisible(false);
-        btnInvocarZombie.addActionListener(e -> {
-            try {
-                if (listener != null) listener.onSolicitarInvocacion();
-            } catch (Exception ex) {
-                mostrarMensajeEstado("No se pudo iniciar la invocación.", Color.RED);
-            }
-        });
-
-        btnChuparSangre = LogInMenu.createButton("Chupar Sangre");
-        btnChuparSangre.setPreferredSize(new Dimension(120, 28));
-        btnChuparSangre.setEnabled(false);
-        btnChuparSangre.setVisible(false);
         btnChuparSangre.addActionListener(e -> {
-            try {
-                if (listener != null) listener.onSolicitarChuparSangre();
-            } catch (Exception ex) {
-                mostrarMensajeEstado("No se pudo iniciar la habilidad.", Color.RED);
-            }
+            if (listener != null) listener.onSolicitarChuparSangre();
+        });
+        btnInvocarZombie.addActionListener(e -> {
+            if (listener != null) listener.onSolicitarInvocacion();
         });
 
-        JPanel panelAcciones = new JPanel();
-        panelAcciones.setOpaque(false);
         panelAcciones.add(btnAtacar);
-        panelAcciones.add(btnInvocarZombie);
         panelAcciones.add(btnChuparSangre);
+        panelAcciones.add(btnInvocarZombie);
 
-        gbc2.gridy = 0; tarjetaInfo.add(lblTituloInfo, gbc2);
-        gbc2.gridy = 1; tarjetaInfo.add(lblMensajeEstado, gbc2);
-        gbc2.gridy = 2; tarjetaInfo.add(lblStatsPieza, gbc2);
-        gbc2.gridy = 3; tarjetaInfo.add(panelAcciones, gbc2);
+        gbc.gridy = 4;
+        add(panelAcciones, gbc);
 
-        // ---------- Ensamblado final: ruleta arriba, info abajo, con espacio ----------
-        tarjetaRuleta.setAlignmentX(Component.CENTER_ALIGNMENT);
-        tarjetaInfo.setAlignmentX(Component.CENTER_ALIGNMENT);
+        // Panel Ficha Seleccionada
+        JPanel panelStats = crearPanelGotico();
+        panelStats.setLayout(new BorderLayout(5, 5));
+        panelStats.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(new Color(140, 40, 50), 1),
+                " Ficha Seleccionada ",
+                0, 0,
+                new Font("Georgia", Font.BOLD, 11),
+                new Color(212, 175, 55)
+            ),
+            BorderFactory.createEmptyBorder(8, 10, 10, 10)
+        ));
 
-        add(tarjetaRuleta);
-        add(Box.createRigidArea(new Dimension(0, 14)));
-        add(tarjetaInfo);
-        add(Box.createVerticalGlue());
+        lblNombrePieza = new JLabel("Ninguna", SwingConstants.LEFT);
+        lblNombrePieza.setFont(new Font("Georgia", Font.BOLD, 12));
+        lblNombrePieza.setForeground(Color.WHITE);
+
+        JPanel detailsGrid = new JPanel(new GridLayout(3, 1, 2, 2));
+        detailsGrid.setOpaque(false);
+
+        lblVida = new JLabel("Vida: -");
+        lblAtaque = new JLabel("Ataque: -");
+        lblEscudo = new JLabel("Escudo: -");
+
+        Font fontStats = new Font("Georgia", Font.PLAIN, 11);
+        Color colStats = new Color(200, 200, 200);
+
+        lblVida.setFont(fontStats); lblVida.setForeground(colStats);
+        lblAtaque.setFont(fontStats); lblAtaque.setForeground(colStats);
+        lblEscudo.setFont(fontStats); lblEscudo.setForeground(colStats);
+
+        detailsGrid.add(lblVida);
+        detailsGrid.add(lblAtaque);
+        detailsGrid.add(lblEscudo);
+
+        panelStats.add(lblNombrePieza, BorderLayout.NORTH);
+        panelStats.add(detailsGrid, BorderLayout.CENTER);
+
+        gbc.gridy = 5;
+        add(panelStats, gbc);
+
+        actualizarStatsPieza(null);
     }
 
-    private JPanel crearTarjeta() {
-        JPanel tarjeta = new JPanel(new GridBagLayout());
-        tarjeta.setBackground(new Color(20, 15, 20, 230));
-        tarjeta.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(100, 40, 50), 2),
-                BorderFactory.createEmptyBorder(10, 10, 10, 10)
-        ));
-        return tarjeta;
+    private JButton crearBotonEstilizado(String texto, Color bgBase) {
+        JButton btn = new JButton(texto) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                Color c1 = getModel().isPressed() ? bgBase.darker() : (getModel().isRollover() ? bgBase.brighter() : bgBase);
+                g2.setColor(c1);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+
+                g2.setColor(new Color(212, 175, 55, 180));
+                g2.setStroke(new BasicStroke(1.2f));
+                g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 7, 7);
+
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        btn.setFont(new Font("Georgia", Font.BOLD, 11));
+        btn.setForeground(Color.WHITE);
+        btn.setFocusPainted(false);
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setOpaque(false);
+        btn.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btn.setPreferredSize(new Dimension(160, 30));
+        return btn;
+    }
+
+    private JPanel crearPanelGotico() {
+        JPanel p = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(new Color(20, 10, 15, 230));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.setColor(new Color(120, 35, 45));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
+                g2.dispose();
+            }
+        };
+        p.setOpaque(false);
+        p.setBorder(BorderFactory.createEmptyBorder(6, 10, 6, 10));
+        return p;
+    }
+
+    private Image cargarImagenSegura(String ruta) {
+        try {
+            URL url = getClass().getResource(ruta);
+            if (url != null) {
+                return new ImageIcon(url).getImage();
+            }
+        } catch (Exception e) {}
+        return null;
+    }
+
+    private void cargarImagenesIconos() {
+        // Nombres ajustados estrictamente a la convención camelCase del proyecto
+        imgLoboB = cargarImagenSegura("/Images/loboB.png");
+        imgLoboN = cargarImagenSegura("/Images/loboN.png");
+        imgVampiroB = cargarImagenSegura("/Images/vampiroB.png");
+        imgVampiroN = cargarImagenSegura("/Images/vampiroN.png");
+        imgMuerteB = cargarImagenSegura("/Images/muerteB.png");
+        imgMuerteN = cargarImagenSegura("/Images/muerteN.png");
     }
 
     public void setListener(OnRuletaFinishedListener listener) {
         this.listener = listener;
     }
 
-    /**
-     * Prepara un nuevo turno. Firma idéntica a la versión anterior, por lo
-     * que BoardPanel.java NO necesita modificarse.
-     */
-    public void prepararNuevoTurno(String nombreJugador, String bando, int piezasPerdidas, List<String> piezasDisponibles) {
-        try {
-            this.bandoActual = (bando != null) ? bando : "BLANCO";
-            this.resultadoSeleccionado = null;
+    public void prepararNuevoTurno(String nombreJugador, String bando, int piezasPerdidas, List<String> tiposDisponibles) {
+        this.bandoActual = bando;
+        lblTurno.setText("Turno de: " + nombreJugador + " (" + bando + ")");
+        this.girosRestantes = Math.max(1, piezasPerdidas);
+        lblGiros.setText("Giros disponibles: " + girosRestantes);
 
-            try {
-                ruedaGrafica.detenerAnimacion();
-                ruedaGrafica.actualizarBando(this.bandoActual);
-            } catch (Exception ex) {
-                // La ruleta puede seguir operando aunque falle la carga visual.
-            }
+        btnGirar.setEnabled(true);
+        panelAcciones.setVisible(false);
+        mostrarMensajeEstado("¡Haz girar la ruleta para tu turno!", Color.WHITE);
+        actualizarStatsPieza(null);
+        repaint();
+    }
 
-            if (piezasPerdidas >= 4) {
-                this.girosRestantes = 3;
-            } else if (piezasPerdidas >= 2) {
-                this.girosRestantes = 2;
-            } else {
-                this.girosRestantes = 1;
-            }
+    public void deshabilitarBotonGiro() {
+        btnGirar.setEnabled(false);
+    }
 
-            lblTurno.setText("Turno: " + (nombreJugador != null ? nombreJugador : "---") + " (" + this.bandoActual + ")");
-            lblGirosRestantes.setText("Giros restantes: " + girosRestantes);
-            lblResultado.setText("¡Gira la ruleta!");
-            mostrarMensajeEstado("Gira la ruleta para obtener una pieza.", Color.WHITE);
+    public void mostrarMensajeEstado(String msj, Color color) {
+        lblMensaje.setText("<html><center>" + msj + "</center></html>");
+        lblMensaje.setForeground(color);
+    }
 
-            btnGirar.setEnabled(true);
-            btnAtacar.setVisible(false);
-            btnInvocarZombie.setVisible(false);
-            btnChuparSangre.setVisible(false);
-            actualizarStatsPieza(null);
-        } catch (Exception e) {
-            mostrarMensajeEstado("Error al preparar el turno. Intenta girar de nuevo.", Color.RED);
+    public void actualizarStatsPieza(Piece p) {
+        if (p == null) {
+            lblNombrePieza.setText("Ninguna seleccionada");
+            lblVida.setText("Vida: -");
+            lblAtaque.setText("Ataque: -");
+            lblEscudo.setText("Escudo: -");
+            panelAcciones.setVisible(false);
+        } else {
+            lblNombrePieza.setText(p.getTipo().toUpperCase() + " (" + p.getBando() + ")");
+            lblVida.setText("Vida: " + p.getVida() + " / " + p.getVidaMaxima());
+            lblAtaque.setText("Ataque: " + p.getAtaque());
+            lblEscudo.setText("Escudo: " + p.getEscudo());
+
+            btnAtacar.setVisible(true);
+            btnChuparSangre.setVisible(p instanceof Vampire);
+            btnInvocarZombie.setVisible(p instanceof Death);
+
+            panelAcciones.setVisible(true);
+            revalidate();
+            repaint();
         }
     }
 
     private void iniciarGiro() {
-        try {
-            if (ruedaGrafica.isGirando() || girosRestantes <= 0) {
-                return;
+        if (girando || girosRestantes <= 0) return;
+
+        girando = true;
+        girosRestantes--;
+        lblGiros.setText("Giros disponibles: " + girosRestantes);
+        btnGirar.setEnabled(false);
+
+        double velocidadInicial = 25.0 + Math.random() * 15.0;
+        final double[] vel = {velocidadInicial};
+
+        timerGiro = new Timer(20, e -> {
+            anguloActual = (anguloActual + vel[0]) % 360;
+            vel[0] *= 0.97;
+            repaint();
+
+            if (vel[0] < 0.3) {
+                ((Timer) e.getSource()).stop();
+                girando = false;
+                procesarResultado();
             }
+        });
+        timerGiro.start();
+    }
 
-            girosRestantes--;
-            lblGirosRestantes.setText("Giros restantes: " + girosRestantes);
-            btnGirar.setEnabled(false);
-            mostrarMensajeEstado("Girando la ruleta...", new Color(220, 190, 120));
+    private void procesarResultado() {
+        double anguloNormalizado = (360 - (anguloActual % 360) + 90) % 360;
+        int index = (int) (anguloNormalizado / 60) % 6;
+        String resultado = secciones[index];
 
-            int indiceElegido = (int) (Math.random() * TIPOS_RULETA.length);
-            if (indiceElegido < 0 || indiceElegido >= TIPOS_RULETA.length) {
-                indiceElegido = 0; // salvaguarda extra, nunca debería ocurrir
+        if (listener != null) {
+            listener.onResultadoObtenido(resultado);
+            if (girosRestantes == 0) {
+                listener.onSinGirosDisponibles();
             }
-            final int indiceObjetivoVisual = indiceElegido;
+        }
+    }
 
-            // El índice "objetivo" solo se usa para saber hacia dónde animar el giro.
-            // El resultado real del juego SIEMPRE se toma del índice que la ruleta
-            // reporta como "indiceReal" (leído del ángulo final físico de la rueda),
-            // así la imagen que ves y la pieza que obtienes nunca pueden desincronizarse.
-            ruedaGrafica.girarHacia(indiceObjetivoVisual, (indiceReal) -> {
-                try {
-                    int idx = (indiceReal >= 0 && indiceReal < TIPOS_RULETA.length) ? indiceReal : 0;
-                    resultadoSeleccionado = TIPOS_RULETA[idx];
-                    lblResultado.setText("¡" + resultadoSeleccionado + "!");
+    private class WheelCanvas extends JPanel {
+        public WheelCanvas() {
+            setOpaque(false);
+        }
 
-                    if (listener != null) {
-                        listener.onResultadoObtenido(resultadoSeleccionado);
-                    }
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
 
-                    if (girosRestantes > 0) {
-                        btnGirar.setEnabled(true);
-                    } else if (listener != null) {
-                        listener.onSinGirosDisponibles();
-                    }
-                } catch (Exception exInterno) {
-                    mostrarMensajeEstado("Ocurrió un problema al procesar el giro.", Color.RED);
-                    if (girosRestantes > 0) {
-                        btnGirar.setEnabled(true);
-                    }
+            int size = Math.min(getWidth(), getHeight()) - 16;
+            int x = (getWidth() - size) / 2;
+            int y = (getHeight() - size) / 2;
+
+            g2.setColor(new Color(0, 0, 0, 180));
+            g2.fillOval(x + 3, y + 3, size, size);
+
+            boolean esBlanco = bandoActual.equalsIgnoreCase("BLANCO");
+
+            for (int i = 0; i < 6; i++) {
+                g2.setColor(colores[i]);
+                g2.fillArc(x, y, size, size, (int) (anguloActual + i * 60), 60);
+
+                g2.setColor(new Color(180, 140, 60, 120));
+                g2.setStroke(new BasicStroke(1.5f));
+                g2.drawArc(x, y, size, size, (int) (anguloActual + i * 60), 60);
+
+                double midAngleRad = Math.toRadians(anguloActual + i * 60 + 30);
+                int iconSize = Math.max(20, size / 6);
+                int imgX = (int) (x + size / 2.0 + (size / 3.1) * Math.cos(midAngleRad)) - (iconSize / 2);
+                int imgY = (int) (y + size / 2.0 - (size / 3.1) * Math.sin(midAngleRad)) - (iconSize / 2);
+
+                Image imgTarget = null;
+                switch (secciones[i]) {
+                    case "Hombre Lobo":
+                        imgTarget = esBlanco ? imgLoboB : imgLoboN;
+                        break;
+                    case "Vampiro":
+                        imgTarget = esBlanco ? imgVampiroB : imgVampiroN;
+                        break;
+                    case "Muerte":
+                        imgTarget = esBlanco ? imgMuerteB : imgMuerteN;
+                        break;
                 }
-            });
-        } catch (Exception e) {
-            mostrarMensajeEstado("No se pudo girar la ruleta. Intenta de nuevo.", Color.RED);
-            btnGirar.setEnabled(true);
-        }
-    }
 
-    public void deshabilitarBotonGiro() {
-        try {
-            btnGirar.setEnabled(false);
-        } catch (Exception e) {
-            // no-op
-        }
-    }
-
-    public void mostrarMensajeEstado(String msj, Color color) {
-        try {
-            lblMensajeEstado.setText("<html><center>" + (msj != null ? msj : "") + "</center></html>");
-            lblMensajeEstado.setForeground(color != null ? color : Color.WHITE);
-        } catch (Exception e) {
-            // no-op
-        }
-    }
-
-    public void actualizarStatsPieza(Piece p) {
-        try {
-            if (p == null) {
-                lblStatsPieza.setText("<html><center><b>STATS FICHA SELECCIONADA</b><br>Vida: - | Escudo: - | Atq: -</center></html>");
-                btnAtacar.setVisible(false);
-                btnInvocarZombie.setVisible(false);
-                btnChuparSangre.setVisible(false);
-                return;
+                if (imgTarget != null) {
+                    g2.drawImage(imgTarget, imgX, imgY, iconSize, iconSize, this);
+                }
             }
 
-            lblStatsPieza.setText("<html><center><b>" + p.getTipo().toUpperCase() + " (" + p.getBando() + ")</b><br>"
-                    + "Vida: " + p.getVida() + " | Escudo: " + p.getEscudo() + " | Atq: " + p.getAtaque() + "</center></html>");
+            g2.setStroke(new BasicStroke(4.0f));
+            g2.setColor(new Color(140, 30, 40));
+            g2.drawOval(x, y, size, size);
 
-            btnAtacar.setVisible(true);
-            btnAtacar.setEnabled(true);
+            g2.setStroke(new BasicStroke(1.5f));
+            g2.setColor(new Color(212, 175, 55));
+            g2.drawOval(x - 1, y - 1, size + 2, size + 2);
 
-            if (p instanceof Death) {
-                btnInvocarZombie.setVisible(true);
-                btnInvocarZombie.setEnabled(true);
-                btnChuparSangre.setVisible(false);
-            } else if (p instanceof Vampire) {
-                btnChuparSangre.setVisible(true);
-                btnChuparSangre.setEnabled(true);
-                btnInvocarZombie.setVisible(false);
-            } else {
-                btnInvocarZombie.setVisible(false);
-                btnChuparSangre.setVisible(false);
-            }
-        } catch (Exception e) {
-            lblStatsPieza.setText("<html><center><b>STATS FICHA SELECCIONADA</b><br>Vida: - | Escudo: - | Atq: -</center></html>");
-            btnAtacar.setVisible(false);
-            btnInvocarZombie.setVisible(false);
-            btnChuparSangre.setVisible(false);
+            int indicatorY = y - 2;
+            int[] px = {getWidth() / 2 - 9, getWidth() / 2 + 9, getWidth() / 2};
+            int[] py = {indicatorY, indicatorY, indicatorY + 14};
+            g2.setColor(new Color(230, 180, 50));
+            g2.fillPolygon(px, py, 3);
+            g2.setColor(Color.BLACK);
+            g2.drawPolygon(px, py, 3);
+
+            g2.dispose();
         }
     }
 }
