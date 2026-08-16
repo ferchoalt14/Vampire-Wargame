@@ -6,17 +6,15 @@ package Game;
 
 import java.util.ArrayList;
 
-/**
- *
- * @author Fernando Altamirano
- */
 public class GameSystem {
 
-    private ArrayList<Player> players;
+    private final ArrayList<Player> players;
+    private final ArrayList<GameMatch> historialPartidas;
     private Player playerActivo;
 
     public GameSystem() {
         this.players = new ArrayList<>();
+        this.historialPartidas = new ArrayList<>();
         this.playerActivo = null;
     }
 
@@ -33,8 +31,9 @@ public class GameSystem {
     }
 
     public Player buscarJugador(String user) {
+        if (user == null) return null;
         for (Player j : players) {
-            if (j.getUser().equalsIgnoreCase(user)) {
+            if (j.getUser() != null && j.getUser().equalsIgnoreCase(user)) {
                 return j;
             }
         }
@@ -62,7 +61,6 @@ public class GameSystem {
         this.playerActivo = null;
     }
 
-    // Cambiar contraseña del jugador activo
     public String cambiarPassword(String passActual, String nuevaPass) {
         if (playerActivo == null) return "No hay sesión activa";
         if (!playerActivo.getPassword().equals(passActual)) {
@@ -75,7 +73,6 @@ public class GameSystem {
         return null; 
     }
 
-    // Eliminar la cuenta activa
     public boolean eliminarCuentaActiva() {
         if (playerActivo != null) {
             players.remove(playerActivo);
@@ -88,11 +85,26 @@ public class GameSystem {
     public ArrayList<Player> getOponentesDisponibles() {
         ArrayList<Player> oponentes = new ArrayList<>();
         for (Player p : players) {
-            if (playerActivo != null && !p.getUser().equalsIgnoreCase(playerActivo.getUser())) {
+            if (playerActivo != null && p.getUser() != null && !p.getUser().equalsIgnoreCase(playerActivo.getUser())) {
                 oponentes.add(p);
             }
         }
         return oponentes;
+    }
+
+    // Registrar resultado final, sumar puntos e historial
+    public synchronized void registrarResultadoPartida(Player ganador, Player perdedor, String causa) {
+        if (ganador != null) {
+            ganador.setPuntos(ganador.getPuntos() + 3);
+        }
+        String nombreGanador = ganador != null ? ganador.getUser() : "N/A";
+        String nombrePerdedor = perdedor != null ? perdedor.getUser() : "N/A";
+
+        historialPartidas.add(new GameMatch(nombreGanador, nombrePerdedor, causa));
+    }
+
+    public ArrayList<GameMatch> getHistorialPartidas() {
+        return new ArrayList<>(historialPartidas);
     }
 
     // Recursividad para el Ranking
@@ -105,9 +117,7 @@ public class GameSystem {
     }
 
     private void ordenarRankingRecursivo(ArrayList<Player> lista, int n) {
-        if (n == 1) {
-            return;
-        }
+        if (n <= 1) return;
 
         for (int i = 0; i < n - 1; i++) {
             if (lista.get(i).getPuntos() < lista.get(i + 1).getPuntos()) {

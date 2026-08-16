@@ -2,40 +2,59 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 package Game;
 
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.Image;
 import java.awt.Insets;
 import java.util.List;
 import javax.swing.BorderFactory;
-import javax.swing.ImageIcon;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
-import javax.swing.Timer;
 
 public class RuletaPanel extends JPanel {
 
     private final JLabel lblTurno;
-    private final JLabel lblImagenPieza;
+    private final RuletaWheel ruedaGrafica;
     private final JLabel lblResultado;
     private final JLabel lblGirosRestantes;
     private final JLabel lblMensajeEstado;
     private final JButton btnGirar;
 
-    private Timer timerAnimacion;
-    private int ticksAnimacion = 0;
-    private boolean enAnimacion = false;
+    private final JLabel lblStatsPieza;
+    private final JButton btnAtacar;
+    private final JButton btnInvocarZombie;
+    private final JButton btnChuparSangre;
 
-    private final String[] tiposRuleta = {"Hombre Lobo", "Vampiro", "Muerte", "Hombre Lobo", "Vampiro", "Muerte"};
+    /** Orden de tipos que representa la ruleta (única fuente de verdad, ver RuletaWheel). */
+    private static final String[] TIPOS_RULETA = RuletaWheel.ORDEN_TIPOS;
+
     private String resultadoSeleccionado = null;
-    private String bandoActual = "BLANCO"; // Guarda el bando para mostrar la imagen correcta
+    private String bandoActual = "BLANCO";
 
     private int girosRestantes = 1;
     private OnRuletaFinishedListener listener;
@@ -43,35 +62,42 @@ public class RuletaPanel extends JPanel {
     public interface OnRuletaFinishedListener {
         void onResultadoObtenido(String tipoPieza);
         void onSinGirosDisponibles();
+        void onSolicitarAtaque();
+        void onSolicitarInvocacion();
+        void onSolicitarChuparSangre();
     }
 
     public RuletaPanel() {
-        setLayout(new GridBagLayout());
-        setBackground(new Color(20, 15, 20, 230));
-        setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(100, 40, 50), 2),
-                BorderFactory.createEmptyBorder(15, 15, 15, 15)
-        ));
-        setPreferredSize(new Dimension(280, 460));
+        // Panel contenedor: apila verticalmente dos tarjetas independientes
+        // (la ruleta y la info/acciones), una debajo de la otra, sin que se
+        // encimen ni se aplasten entre sí.
+        setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+        setOpaque(false);
+        setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
 
+        JPanel tarjetaRuleta = crearTarjeta();
+        JPanel tarjetaInfo = crearTarjeta();
+
+        // ---------- Contenido de la tarjeta "Ruleta" ----------
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(4, 5, 4, 5);
+        gbc.insets = new Insets(3, 4, 3, 4);
         gbc.gridx = 0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
         lblTurno = new JLabel("Turno: ---", SwingConstants.CENTER);
         lblTurno.setForeground(new Color(230, 230, 230));
-        lblTurno.setFont(new Font("Georgia", Font.BOLD, 15));
+        lblTurno.setFont(new Font("Georgia", Font.BOLD, 14));
 
         JLabel lblTitulo = new JLabel("RULETA DE ACCIÓN", SwingConstants.CENTER);
         lblTitulo.setForeground(new Color(210, 170, 110));
-        lblTitulo.setFont(new Font("Georgia", Font.BOLD, 14));
+        lblTitulo.setFont(new Font("Georgia", Font.BOLD, 13));
 
-        lblImagenPieza = new JLabel("", SwingConstants.CENTER);
-        lblImagenPieza.setPreferredSize(new Dimension(90, 90));
-        lblImagenPieza.setBorder(BorderFactory.createLineBorder(new Color(140, 40, 50), 1));
-        lblImagenPieza.setOpaque(true);
-        lblImagenPieza.setBackground(new Color(10, 8, 10));
+        ruedaGrafica = new RuletaWheel();
+
+        // La fila de la ruleta NO se estira/encoge horizontalmente como las demás,
+        // para que conserve siempre su tamaño fijo (ver RuletaWheel).
+        GridBagConstraints gbcRueda = (GridBagConstraints) gbc.clone();
+        gbcRueda.fill = GridBagConstraints.NONE;
 
         lblResultado = new JLabel("¡Gira la ruleta!", SwingConstants.CENTER);
         lblResultado.setForeground(Color.WHITE);
@@ -79,52 +105,124 @@ public class RuletaPanel extends JPanel {
 
         lblGirosRestantes = new JLabel("Giros restantes: 1", SwingConstants.CENTER);
         lblGirosRestantes.setForeground(new Color(180, 180, 180));
-        lblGirosRestantes.setFont(new Font("Georgia", Font.PLAIN, 12));
+        lblGirosRestantes.setFont(new Font("Georgia", Font.PLAIN, 11));
+
+        btnGirar = LogInMenu.createButton("Girar Ruleta");
+        btnGirar.setPreferredSize(new Dimension(150, 32));
+        btnGirar.addActionListener(e -> iniciarGiro());
+
+        gbc.gridy = 0; tarjetaRuleta.add(lblTurno, gbc);
+        gbc.gridy = 1; tarjetaRuleta.add(lblTitulo, gbc);
+        gbcRueda.gridy = 2; tarjetaRuleta.add(ruedaGrafica, gbcRueda);
+        gbc.gridy = 3; tarjetaRuleta.add(lblResultado, gbc);
+        gbc.gridy = 4; tarjetaRuleta.add(lblGirosRestantes, gbc);
+        gbc.gridy = 5; tarjetaRuleta.add(btnGirar, gbc);
+
+        // ---------- Contenido de la tarjeta "Info y acciones" ----------
+        GridBagConstraints gbc2 = new GridBagConstraints();
+        gbc2.insets = new Insets(3, 4, 3, 4);
+        gbc2.gridx = 0;
+        gbc2.fill = GridBagConstraints.HORIZONTAL;
+
+        JLabel lblTituloInfo = new JLabel("ESTADO Y ACCIONES", SwingConstants.CENTER);
+        lblTituloInfo.setForeground(new Color(210, 170, 110));
+        lblTituloInfo.setFont(new Font("Georgia", Font.BOLD, 13));
 
         lblMensajeEstado = new JLabel("<html><center>Selecciona 'Girar' para iniciar turno.</center></html>", SwingConstants.CENTER);
         lblMensajeEstado.setForeground(new Color(220, 190, 120));
         lblMensajeEstado.setFont(new Font("Georgia", Font.PLAIN, 11));
-        lblMensajeEstado.setPreferredSize(new Dimension(240, 45));
+        lblMensajeEstado.setPreferredSize(new Dimension(260, 45));
 
-        btnGirar = LogInMenu.createButton("Girar Ruleta");
-        btnGirar.setPreferredSize(new Dimension(160, 36));
-        btnGirar.addActionListener(e -> iniciarGiro());
+        lblStatsPieza = new JLabel("<html><center><b>STATS FICHA SELECCIONADA</b><br>Vida: - | Escudo: - | Atq: -</center></html>", SwingConstants.CENTER);
+        lblStatsPieza.setForeground(new Color(180, 220, 255));
+        lblStatsPieza.setFont(new Font("Georgia", Font.PLAIN, 11));
 
-        gbc.gridy = 0; add(lblTurno, gbc);
-        gbc.gridy = 1; add(lblTitulo, gbc);
-        gbc.gridy = 2; gbc.fill = GridBagConstraints.NONE; add(lblImagenPieza, gbc);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.gridy = 3; add(lblResultado, gbc);
-        gbc.gridy = 4; add(lblGirosRestantes, gbc);
-        gbc.gridy = 5; add(btnGirar, gbc);
-        gbc.gridy = 6; add(lblMensajeEstado, gbc);
+        btnAtacar = LogInMenu.createButton("Atacar");
+        btnAtacar.setPreferredSize(new Dimension(80, 28));
+        btnAtacar.setEnabled(false);
+        btnAtacar.setVisible(false);
+        btnAtacar.addActionListener(e -> {
+            try {
+                if (listener != null) listener.onSolicitarAtaque();
+            } catch (Exception ex) {
+                mostrarMensajeEstado("No se pudo iniciar el ataque.", Color.RED);
+            }
+        });
 
-        inicializarTimer();
-        mostrarIconoRepresentativo("Hombre Lobo");
+        btnInvocarZombie = LogInMenu.createButton("Invocar Zombie");
+        btnInvocarZombie.setPreferredSize(new Dimension(130, 28));
+        btnInvocarZombie.setEnabled(false);
+        btnInvocarZombie.setVisible(false);
+        btnInvocarZombie.addActionListener(e -> {
+            try {
+                if (listener != null) listener.onSolicitarInvocacion();
+            } catch (Exception ex) {
+                mostrarMensajeEstado("No se pudo iniciar la invocación.", Color.RED);
+            }
+        });
+
+        btnChuparSangre = LogInMenu.createButton("Chupar Sangre");
+        btnChuparSangre.setPreferredSize(new Dimension(120, 28));
+        btnChuparSangre.setEnabled(false);
+        btnChuparSangre.setVisible(false);
+        btnChuparSangre.addActionListener(e -> {
+            try {
+                if (listener != null) listener.onSolicitarChuparSangre();
+            } catch (Exception ex) {
+                mostrarMensajeEstado("No se pudo iniciar la habilidad.", Color.RED);
+            }
+        });
+
+        JPanel panelAcciones = new JPanel();
+        panelAcciones.setOpaque(false);
+        panelAcciones.add(btnAtacar);
+        panelAcciones.add(btnInvocarZombie);
+        panelAcciones.add(btnChuparSangre);
+
+        gbc2.gridy = 0; tarjetaInfo.add(lblTituloInfo, gbc2);
+        gbc2.gridy = 1; tarjetaInfo.add(lblMensajeEstado, gbc2);
+        gbc2.gridy = 2; tarjetaInfo.add(lblStatsPieza, gbc2);
+        gbc2.gridy = 3; tarjetaInfo.add(panelAcciones, gbc2);
+
+        // ---------- Ensamblado final: ruleta arriba, info abajo, con espacio ----------
+        tarjetaRuleta.setAlignmentX(Component.CENTER_ALIGNMENT);
+        tarjetaInfo.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        add(tarjetaRuleta);
+        add(Box.createRigidArea(new Dimension(0, 14)));
+        add(tarjetaInfo);
+        add(Box.createVerticalGlue());
+    }
+
+    private JPanel crearTarjeta() {
+        JPanel tarjeta = new JPanel(new GridBagLayout());
+        tarjeta.setBackground(new Color(20, 15, 20, 230));
+        tarjeta.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(100, 40, 50), 2),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
+        return tarjeta;
     }
 
     public void setListener(OnRuletaFinishedListener listener) {
         this.listener = listener;
     }
 
-    public void mostrarMensajeEstado(String mensaje, Color colorText) {
+    /**
+     * Prepara un nuevo turno. Firma idéntica a la versión anterior, por lo
+     * que BoardPanel.java NO necesita modificarse.
+     */
+    public void prepararNuevoTurno(String nombreJugador, String bando, int piezasPerdidas, List<String> piezasDisponibles) {
         try {
-            lblMensajeEstado.setForeground(colorText);
-            lblMensajeEstado.setText("<html><center>" + mensaje + "</center></html>");
-        } catch (Exception e) {
-            // Control defensivo
-        }
-    }
+            this.bandoActual = (bando != null) ? bando : "BLANCO";
+            this.resultadoSeleccionado = null;
 
-    public void prepararNuevoTurno(String nombreJugador, String bando, int piezasPerdidas, List<String> tiposPiezasDisponibles) {
-        try {
-            if (timerAnimacion != null && timerAnimacion.isRunning()) {
-                timerAnimacion.stop();
+            try {
+                ruedaGrafica.detenerAnimacion();
+                ruedaGrafica.actualizarBando(this.bandoActual);
+            } catch (Exception ex) {
+                // La ruleta puede seguir operando aunque falle la carga visual.
             }
-            enAnimacion = false;
-            this.bandoActual = bando; // Actualizamos el bando del jugador actual
-
-            lblTurno.setText("Turno: " + nombreJugador + " (" + bando + ")");
 
             if (piezasPerdidas >= 4) {
                 this.girosRestantes = 3;
@@ -134,124 +232,120 @@ public class RuletaPanel extends JPanel {
                 this.girosRestantes = 1;
             }
 
+            lblTurno.setText("Turno: " + (nombreJugador != null ? nombreJugador : "---") + " (" + this.bandoActual + ")");
             lblGirosRestantes.setText("Giros restantes: " + girosRestantes);
             lblResultado.setText("¡Gira la ruleta!");
-            mostrarMensajeEstado("Haz clic en 'Girar Ruleta' para obtener una pieza.", new Color(220, 190, 120));
+            mostrarMensajeEstado("Gira la ruleta para obtener una pieza.", Color.WHITE);
+
             btnGirar.setEnabled(true);
-            resultadoSeleccionado = null;
-
-            // Muestra imagen inicial correspondiente a su bando
-            mostrarIconoRepresentativo("Hombre Lobo");
+            btnAtacar.setVisible(false);
+            btnInvocarZombie.setVisible(false);
+            btnChuparSangre.setVisible(false);
+            actualizarStatsPieza(null);
         } catch (Exception e) {
-            System.err.println("Error al preparar turno en ruleta: " + e.getMessage());
-        }
-    }
-
-    private void inicializarTimer() {
-        try {
-            timerAnimacion = new Timer(70, e -> {
-                try {
-                    ticksAnimacion++;
-                    int idx = (int) (Math.random() * tiposRuleta.length);
-                    String tipoActual = tiposRuleta[idx];
-                    mostrarIconoRepresentativo(tipoActual);
-
-                    if (ticksAnimacion >= 20) {
-                        timerAnimacion.stop();
-                        enAnimacion = false;
-                        finalizarGiro(tipoActual);
-                    }
-                } catch (Exception ex) {
-                    if (timerAnimacion != null) timerAnimacion.stop();
-                    enAnimacion = false;
-                    btnGirar.setEnabled(true);
-                }
-            });
-        } catch (Exception e) {
-            System.err.println("Error al inicializar Timer: " + e.getMessage());
+            mostrarMensajeEstado("Error al preparar el turno. Intenta girar de nuevo.", Color.RED);
         }
     }
 
     private void iniciarGiro() {
         try {
-            if (enAnimacion || girosRestantes <= 0) return;
+            if (ruedaGrafica.isGirando() || girosRestantes <= 0) {
+                return;
+            }
 
-            enAnimacion = true;
-            btnGirar.setEnabled(false);
             girosRestantes--;
             lblGirosRestantes.setText("Giros restantes: " + girosRestantes);
-            lblResultado.setText("Girando...");
-            mostrarMensajeEstado("Seleccionando pieza...", Color.LIGHT_GRAY);
+            btnGirar.setEnabled(false);
+            mostrarMensajeEstado("Girando la ruleta...", new Color(220, 190, 120));
 
-            ticksAnimacion = 0;
-            timerAnimacion.start();
-        } catch (Exception e) {
-            enAnimacion = false;
-            btnGirar.setEnabled(true);
-            lblResultado.setText("Error al girar.");
-        }
-    }
-
-    private void finalizarGiro(String resultado) {
-        try {
-            this.resultadoSeleccionado = resultado;
-            lblResultado.setText("<html><center>Obtenido:<br><b>" + resultado + "</b></center></html>");
-
-            if (listener != null) {
-                listener.onResultadoObtenido(resultado);
+            int indiceElegido = (int) (Math.random() * TIPOS_RULETA.length);
+            if (indiceElegido < 0 || indiceElegido >= TIPOS_RULETA.length) {
+                indiceElegido = 0; // salvaguarda extra, nunca debería ocurrir
             }
+            final int indiceObjetivoVisual = indiceElegido;
 
-            if (girosRestantes > 0 && resultadoSeleccionado != null) {
-                btnGirar.setEnabled(true);
-            } else if (girosRestantes <= 0 && resultadoSeleccionado != null) {
-                btnGirar.setEnabled(false);
-                if (listener != null) {
-                    listener.onSinGirosDisponibles();
+            // El índice "objetivo" solo se usa para saber hacia dónde animar el giro.
+            // El resultado real del juego SIEMPRE se toma del índice que la ruleta
+            // reporta como "indiceReal" (leído del ángulo final físico de la rueda),
+            // así la imagen que ves y la pieza que obtienes nunca pueden desincronizarse.
+            ruedaGrafica.girarHacia(indiceObjetivoVisual, (indiceReal) -> {
+                try {
+                    int idx = (indiceReal >= 0 && indiceReal < TIPOS_RULETA.length) ? indiceReal : 0;
+                    resultadoSeleccionado = TIPOS_RULETA[idx];
+                    lblResultado.setText("¡" + resultadoSeleccionado + "!");
+
+                    if (listener != null) {
+                        listener.onResultadoObtenido(resultadoSeleccionado);
+                    }
+
+                    if (girosRestantes > 0) {
+                        btnGirar.setEnabled(true);
+                    } else if (listener != null) {
+                        listener.onSinGirosDisponibles();
+                    }
+                } catch (Exception exInterno) {
+                    mostrarMensajeEstado("Ocurrió un problema al procesar el giro.", Color.RED);
+                    if (girosRestantes > 0) {
+                        btnGirar.setEnabled(true);
+                    }
                 }
-            }
+            });
         } catch (Exception e) {
-            System.err.println("Error al finalizar giro: " + e.getMessage());
+            mostrarMensajeEstado("No se pudo girar la ruleta. Intenta de nuevo.", Color.RED);
+            btnGirar.setEnabled(true);
         }
-    }
-
-    private void mostrarIconoRepresentativo(String tipo) {
-        try {
-            String prefijo = "";
-            switch (tipo) {
-                case "Hombre Lobo": prefijo = "lobo"; break;
-                case "Vampiro":     prefijo = "vampiro"; break;
-                case "Muerte":      prefijo = "muerte"; break;
-            }
-
-            // Selecciona el B o N según el bando actual del jugador
-            String sufijo = bandoActual.equalsIgnoreCase("BLANCO") ? "B" : "N";
-            String path = "/Images/" + prefijo + sufijo + ".png";
-
-            java.net.URL imgURL = getClass().getResource(path);
-            if (imgURL != null) {
-                ImageIcon raw = new ImageIcon(imgURL);
-                Image img = raw.getImage().getScaledInstance(80, 80, Image.SCALE_SMOOTH);
-                lblImagenPieza.setIcon(new ImageIcon(img));
-                lblImagenPieza.setText("");
-            } else {
-                lblImagenPieza.setIcon(null);
-                lblImagenPieza.setText(tipo);
-            }
-        } catch (Exception e) {
-            lblImagenPieza.setIcon(null);
-            lblImagenPieza.setText(tipo);
-        }
-    }
-
-    public String getResultadoSeleccionado() {
-        return resultadoSeleccionado;
     }
 
     public void deshabilitarBotonGiro() {
         try {
             btnGirar.setEnabled(false);
         } catch (Exception e) {
-            // Manejo silencioso defensivo
+            // no-op
+        }
+    }
+
+    public void mostrarMensajeEstado(String msj, Color color) {
+        try {
+            lblMensajeEstado.setText("<html><center>" + (msj != null ? msj : "") + "</center></html>");
+            lblMensajeEstado.setForeground(color != null ? color : Color.WHITE);
+        } catch (Exception e) {
+            // no-op
+        }
+    }
+
+    public void actualizarStatsPieza(Piece p) {
+        try {
+            if (p == null) {
+                lblStatsPieza.setText("<html><center><b>STATS FICHA SELECCIONADA</b><br>Vida: - | Escudo: - | Atq: -</center></html>");
+                btnAtacar.setVisible(false);
+                btnInvocarZombie.setVisible(false);
+                btnChuparSangre.setVisible(false);
+                return;
+            }
+
+            lblStatsPieza.setText("<html><center><b>" + p.getTipo().toUpperCase() + " (" + p.getBando() + ")</b><br>"
+                    + "Vida: " + p.getVida() + " | Escudo: " + p.getEscudo() + " | Atq: " + p.getAtaque() + "</center></html>");
+
+            btnAtacar.setVisible(true);
+            btnAtacar.setEnabled(true);
+
+            if (p instanceof Death) {
+                btnInvocarZombie.setVisible(true);
+                btnInvocarZombie.setEnabled(true);
+                btnChuparSangre.setVisible(false);
+            } else if (p instanceof Vampire) {
+                btnChuparSangre.setVisible(true);
+                btnChuparSangre.setEnabled(true);
+                btnInvocarZombie.setVisible(false);
+            } else {
+                btnInvocarZombie.setVisible(false);
+                btnChuparSangre.setVisible(false);
+            }
+        } catch (Exception e) {
+            lblStatsPieza.setText("<html><center><b>STATS FICHA SELECCIONADA</b><br>Vida: - | Escudo: - | Atq: -</center></html>");
+            btnAtacar.setVisible(false);
+            btnInvocarZombie.setVisible(false);
+            btnChuparSangre.setVisible(false);
         }
     }
 }

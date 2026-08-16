@@ -27,7 +27,7 @@ private final Image fondo;
 
         setLayout(new GridBagLayout());
 
-        // Aumentado a 6 filas para incluir el mensaje integrado
+        
         JPanel formPanel = new JPanel(new GridLayout(6, 1, 10, 10));
         formPanel.setOpaque(false);
 

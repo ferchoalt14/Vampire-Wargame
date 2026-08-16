@@ -5,6 +5,7 @@
 package Game;
 
 import java.awt.Image;
+import java.net.URL;
 import javax.swing.ImageIcon;
 
 public abstract class Piece {
@@ -13,6 +14,7 @@ public abstract class Piece {
     protected String tipo;  // "Vampiro", "Hombre Lobo", "Muerte", "Zombie"
     protected int ataque;
     protected int vida;
+    protected int vidaMaxima; // Límite máximo de vida para evitar sobrecuraciones
     protected int escudo;
     protected ImageIcon icon;
 
@@ -21,6 +23,7 @@ public abstract class Piece {
         this.tipo = tipo;
         this.ataque = ataque;
         this.vida = vida;
+        this.vidaMaxima = vida; // Se inicializa la vida máxima con el valor inicial
         this.escudo = escudo;
         this.icon = cargarIcono();
     }
@@ -46,11 +49,18 @@ public abstract class Piece {
             String sufijo = bando.equalsIgnoreCase("BLANCO") ? "B" : "N";
             String path = "/Images/" + prefijo + sufijo + ".png";
 
-            ImageIcon rawIcon = new ImageIcon(getClass().getResource(path));
-            Image img = rawIcon.getImage().getScaledInstance(85, 85, Image.SCALE_SMOOTH);
-            return new ImageIcon(img);
+            URL imgURL = getClass().getResource(path);
+            if (imgURL != null) {
+                ImageIcon rawIcon = new ImageIcon(imgURL);
+                Image img = rawIcon.getImage().getScaledInstance(85, 85, Image.SCALE_SMOOTH);
+                return new ImageIcon(img);
+            } else {
+                System.err.println("No se encontro la imagen en la ruta: " + path);
+                return null;
+            }
             
         } catch (Exception e) {
+            System.err.println("Error al cargar la imagen de la pieza: " + e.getMessage());
             return null;
         }
     }
@@ -76,12 +86,25 @@ public abstract class Piece {
         return vida;
     }
 
+    public final int getVidaMaxima() {
+        return vidaMaxima;
+    }
+
     public final int getEscudo() {
         return escudo;
     }
 
     public final boolean estaViva() {
         return this.vida > 0;
+    }
+
+    // Setters para modificaciones temporales o permanentes de estadísticas
+    public void setAtaque(int ataque) {
+        this.ataque = ataque;
+    }
+
+    public void setEscudo(int escudo) {
+        this.escudo = escudo;
     }
 
     // Aplicación de daño 
@@ -102,8 +125,17 @@ public abstract class Piece {
         }
     }
 
+    // Curación controlada respetando el tope de vida máxima
     public void curarVida(int puntos) {
         this.vida += puntos;
+        if (this.vida > this.vidaMaxima) {
+            this.vida = this.vidaMaxima;
+        }
+    }
+
+    // Método para activar o ejecutar habilidades especiales según la pieza
+    public void usarHabilidadEspecial(Piece objetivo) {
+        // Implementación base vacía o personalizable en las subclases
     }
 
     // Método abstracto 

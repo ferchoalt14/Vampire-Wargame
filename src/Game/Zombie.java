@@ -4,19 +4,35 @@
  */
 package Game;
 
-/**
- *
- * @author User
- */
-public final class Zombie extends Piece{
+import javax.swing.ImageIcon;
+import java.awt.Image;
+
+public class Zombie extends Piece {
+
     public Zombie(String bando) {
-        // Zombie: Ataque 0, Vida 1, Escudo 0
-        super(bando, "Zombie", 0, 1, 0);
+        super(bando, "Zombie", 1, 1, 0);
     }
 
-    @Override
-    public boolean esMovimientoValido(int origenFila, int origenCol, int destinoFila, int destinoCol) {
-        // El Zombie no se puede mover por sí solo en el tablero
-        return false;
+    protected void cargarIcono() {
+        try {
+            String sufijo = bando.equalsIgnoreCase("BLANCO") ? "B" : "N";
+            String path = "/Images/zombie" + sufijo + ".png";
+            java.net.URL imgURL = getClass().getResource(path);
+            if (imgURL != null) {
+                ImageIcon raw = new ImageIcon(imgURL);
+                Image img = raw.getImage().getScaledInstance(75, 75, Image.SCALE_SMOOTH);
+                this.icon = new ImageIcon(img);
+            }
+        } catch (Exception e) {
+            this.icon = null;
+        }
+    }
+
+  @Override
+    public boolean esMovimientoValido(int fOri, int cOri, int fDes, int cDes) {
+        int dFila = Math.abs(fDes - fOri);
+        int dCol = Math.abs(cDes - cOri);
+        // El zombie se mueve 1 casilla en cualquier dirección
+        return (dFila <= 1 && dCol <= 1) && !(dFila == 0 && dCol == 0);
     }
 }

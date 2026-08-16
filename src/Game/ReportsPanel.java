@@ -19,19 +19,17 @@ import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.SwingConstants;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
-/**
- * 
- */
 public class ReportsPanel extends JPanel {
 
     private final Image fondo;
-    private final JTable rankingTable;
-    private final DefaultTableModel tableModel;
+    private final DefaultTableModel rankingModel;
+    private final DefaultTableModel historialModel;
 
     public ReportsPanel(GameSystem brain, Runnable onBack) {
         this.fondo = new ImageIcon(getClass().getResource("/Images/MainHall.png")).getImage();
@@ -45,58 +43,35 @@ public class ReportsPanel extends JPanel {
         Color txtBlanc = new Color(230, 230, 230);
         Color bordeRojo = new Color(150, 40, 50);
 
-        // Titulo de la pantalla
-        JLabel lblTitle = new JLabel("RANKING DE JUGADORES", SwingConstants.CENTER);
+        JLabel lblTitle = new JLabel("REPORTES Y ESTADÍSTICAS", SwingConstants.CENTER);
         lblTitle.setForeground(txtBlanc);
         lblTitle.setFont(new Font("Georgia", Font.BOLD, 22));
         lblTitle.setAlignmentX(CENTER_ALIGNMENT);
 
-        // Modelo y Tabla
-        String[] columnNames = {"Posición", "Usuario", "Puntos"};
-        tableModel = new DefaultTableModel(columnNames, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false; // Hacer celdas no editables
-            }
-        };
+        JTabbedPane tabbedPane = new JTabbedPane();
+        tabbedPane.setFont(new Font("Georgia", Font.BOLD, 12));
 
-        rankingTable = new JTable(tableModel);
-        rankingTable.setFont(new Font("Georgia", Font.PLAIN, 13));
-        rankingTable.setForeground(txtBlanc);
-        rankingTable.setBackground(fondoCajas);
-        rankingTable.setSelectionBackground(bordeRojo);
-        rankingTable.setSelectionForeground(Color.WHITE);
-        rankingTable.setRowHeight(28);
+        // TAB 1: RANKING
+        String[] rankingCols = {"Posición", "Usuario", "Puntos"};
+        rankingModel = createNonEditableModel(rankingCols);
+        JTable rankingTable = createStyledTable(rankingModel, fondoCajas, txtBlanc, bordeRojo);
+        JScrollPane scrollRanking = new JScrollPane(rankingTable);
+        configureScrollPane(scrollRanking, fondoCajas, bordeRojo);
 
-        // Estilo para el encabezado de la tabla
-        rankingTable.getTableHeader().setFont(new Font("Georgia", Font.BOLD, 14));
-        rankingTable.getTableHeader().setBackground(new Color(40, 15, 20));
-        rankingTable.getTableHeader().setForeground(txtBlanc);
-        rankingTable.getTableHeader().setReorderingAllowed(false);
+        // TAB 2: HISTORIAL DE PARTIDAS
+        String[] historialCols = {"Fecha", "Ganador", "Perdedor", "Causa"};
+        historialModel = createNonEditableModel(historialCols);
+        JTable historialTable = createStyledTable(historialModel, fondoCajas, txtBlanc, bordeRojo);
+        JScrollPane scrollHistorial = new JScrollPane(historialTable);
+        configureScrollPane(scrollHistorial, fondoCajas, bordeRojo);
 
-        // Centrar texto en las celdas
-        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
-        centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
-        centerRenderer.setBackground(fondoCajas);
-        centerRenderer.setForeground(txtBlanc);
-        for (int i = 0; i < rankingTable.getColumnCount(); i++) {
-            rankingTable.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
-        }
+        tabbedPane.addTab("Ranking", scrollRanking);
+        tabbedPane.addTab("Historial de Partidas", scrollHistorial);
 
-        // ScrollPane para la tabla 
-        JScrollPane scrollPane = new JScrollPane(rankingTable);
-        scrollPane.setPreferredSize(new Dimension(380, 220));
-        scrollPane.setMaximumSize(new Dimension(380, 220));
-        scrollPane.getViewport().setBackground(fondoCajas);
-        scrollPane.setBorder(BorderFactory.createLineBorder(bordeRojo, 2));
-        scrollPane.setAlignmentX(CENTER_ALIGNMENT);
-
-        // Btn Volver
         JButton btnVolver = LogInMenu.createButton("Volver");
         Dimension dimBtn = new Dimension(220, 40);
         btnVolver.setPreferredSize(dimBtn);
         btnVolver.setMaximumSize(dimBtn);
-        btnVolver.setMinimumSize(dimBtn);
         btnVolver.setAlignmentX(CENTER_ALIGNMENT);
 
         btnVolver.addActionListener(e -> {
@@ -105,25 +80,84 @@ public class ReportsPanel extends JPanel {
             }
         });
 
-        // Ensamble de componentes
         containerPanel.add(lblTitle);
         containerPanel.add(Box.createRigidArea(new Dimension(0, 15)));
-        containerPanel.add(scrollPane);
+        containerPanel.add(tabbedPane);
         containerPanel.add(Box.createRigidArea(new Dimension(0, 15)));
         containerPanel.add(btnVolver);
 
         add(containerPanel);
     }
 
-    // Carga los datos usando el método recursivo 
-    public void cargarRanking(GameSystem brain) {
-        tableModel.setRowCount(0); // Limpiar filas
-        ArrayList<Player> ranking = brain.getRanking();
+    private DefaultTableModel createNonEditableModel(String[] columns) {
+        return new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+    }
 
+    private JTable createStyledTable(DefaultTableModel model, Color fondo, Color texto, Color seleccion) {
+        JTable table = new JTable(model);
+        table.setFont(new Font("Georgia", Font.PLAIN, 12));
+        table.setForeground(texto);
+        table.setBackground(fondo);
+        table.setSelectionBackground(seleccion);
+        table.setSelectionForeground(Color.WHITE);
+        table.setRowHeight(26);
+
+        table.getTableHeader().setFont(new Font("Georgia", Font.BOLD, 13));
+        table.getTableHeader().setBackground(new Color(40, 15, 20));
+        table.getTableHeader().setForeground(texto);
+        table.getTableHeader().setReorderingAllowed(false);
+
+        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+        centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        centerRenderer.setBackground(fondo);
+        centerRenderer.setForeground(texto);
+
+        for (int i = 0; i < table.getColumnCount(); i++) {
+            table.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
+        }
+        return table;
+    }
+
+    private void configureScrollPane(JScrollPane scrollPane, Color fondo, Color borde) {
+        scrollPane.setPreferredSize(new Dimension(420, 220));
+        scrollPane.setMaximumSize(new Dimension(420, 220));
+        scrollPane.getViewport().setBackground(fondo);
+        scrollPane.setBorder(BorderFactory.createLineBorder(borde, 2));
+    }
+
+    public void cargarRanking(GameSystem brain) {
+        if (brain == null) return;
+
+        rankingModel.setRowCount(0);
+        ArrayList<Player> ranking = brain.getRanking();
         int pos = 1;
-        for (Player p : ranking) {
-            tableModel.addRow(new Object[]{pos + "°", p.getUser(), p.getPuntos()});
-            pos++;
+        if (ranking != null) {
+            for (Player p : ranking) {
+                if (p != null) {
+                    rankingModel.addRow(new Object[]{pos + "°", p.getUser(), p.getPuntos()});
+                    pos++;
+                }
+            }
+        }
+
+        historialModel.setRowCount(0);
+        ArrayList<GameMatch> historial = brain.getHistorialPartidas();
+        if (historial != null) {
+            for (GameMatch m : historial) {
+                if (m != null) {
+                    historialModel.addRow(new Object[]{
+                        m.getFechaFormateada(),
+                        m.getGanador(),
+                        m.getPerdedor(),
+                        m.getCausa()
+                    });
+                }
+            }
         }
     }
 
