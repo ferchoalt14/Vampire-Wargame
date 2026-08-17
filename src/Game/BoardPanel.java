@@ -1,7 +1,4 @@
- /*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
+ 
 package Game;
 
 import java.awt.BorderLayout;
@@ -48,6 +45,9 @@ public class BoardPanel extends JPanel implements RuletaPanel.OnRuletaFinishedLi
     private boolean modoAtaqueActivo = false;
     private boolean modoInvocacionActivo = false;
     private boolean modoChuparSangreActivo = false;
+
+
+    private static final int RETARDO_MENSAJE_ACCION_MS = 1600;
 
     public BoardPanel(GameSystem brain, Runnable onGameEnd) {
         this.brain = brain;
@@ -281,30 +281,31 @@ public class BoardPanel extends JPanel implements RuletaPanel.OnRuletaFinishedLi
         }
     }
 
-    public boolean verificarCondicionVictoria() {
-        String bandoRival = bandoActual().equalsIgnoreCase("BLANCO") ? "NEGRO" : "BLANCO";
-        boolean rivalTienePiezasCapaces = false;
+   public boolean verificarCondicionVictoria() {
+    String bandoJugadorActual = bandoActual();
+    boolean tienePiezasCapaces = false;
 
-        for (int r = 0; r < 6; r++) {
-            for (int c = 0; c < 6; c++) {
-                Piece p = board[r][c];
-                if (p != null && p.getBando() != null && p.getBando().equalsIgnoreCase(bandoRival)) {
-                    if (!p.getTipo().equalsIgnoreCase("ZOMBIE")) {
-                        rivalTienePiezasCapaces = true;
-                        break;
-                    }
+    for (int r = 0; r < 6; r++) {
+        for (int c = 0; c < 6; c++) {
+            Piece p = board[r][c];
+            if (p != null && p.getBando() != null && p.getBando().equalsIgnoreCase(bandoJugadorActual)) {
+                if (!p.getTipo().equalsIgnoreCase("ZOMBIE")) {
+                    tienePiezasCapaces = true;
+                    break;
                 }
             }
-            if (rivalTienePiezasCapaces) break;
         }
-
-        if (!rivalTienePiezasCapaces) {
-            Player oponente = jugadorActual.equals(jugadorBlanco) ? jugadorNegro : jugadorBlanco;
-            finalizarPartidaPorVictoria(jugadorActual, oponente, "Eliminación total de tropas enemigas");
-            return true;
-        }
-        return false;
+        if (tienePiezasCapaces) break;
     }
+
+    if (!tienePiezasCapaces) {
+        Player ganador = jugadorActual.equals(jugadorBlanco) ? jugadorNegro : jugadorBlanco;
+        Player perdedor = jugadorActual;
+        finalizarPartidaPorVictoria(ganador, perdedor, "Eliminación total de tropas enemigas");
+        return true;
+    }
+    return false;
+}
 
     public void finalizarPartidaPorVictoria(Player ganador, Player perdedor, String causa) {
         if (brain != null) {
@@ -366,7 +367,7 @@ public class BoardPanel extends JPanel implements RuletaPanel.OnRuletaFinishedLi
         return tipos;
     }
 
-    // --- MÉTODOS DE LA INTERFAZ OnRuletaFinishedListener CON @Override CORRECTOS ---
+    // --- MÉTODOS DE LA INTERFAZ ---
 
     @Override
     public void onResultadoObtenido(String tipoPieza) {
@@ -393,8 +394,9 @@ public class BoardPanel extends JPanel implements RuletaPanel.OnRuletaFinishedLi
                 }
                 
                 ruletaPanel.mostrarMensajeEstado(opcionesTexto, new Color(100, 220, 120));
-            } else {
+             } else {
                 ruletaPanel.mostrarMensajeEstado("No tienes ningún " + tipoPieza + " activo. Vuelve a girar.", new Color(230, 100, 100));
+                ruletaPanel.habilitarBotonGiroSiQuedanGiros();
             }
         } catch (Exception e) {
             System.err.println("Error en callback de resultado: " + e.getMessage());
@@ -446,7 +448,7 @@ public class BoardPanel extends JPanel implements RuletaPanel.OnRuletaFinishedLi
     }
 
     // --- LÓGICA INTERNA DE JUEGO ---
-
+//metodo recursivo 2
     private boolean validarAtaqueDistanciaRecursivo(int fOrigen, int cOrigen, int df, int dc, int paso, int maxPaso) {
         int fActual = fOrigen + (df * paso);
         int cActual = cOrigen + (dc * paso);
@@ -468,143 +470,161 @@ public class BoardPanel extends JPanel implements RuletaPanel.OnRuletaFinishedLi
     }
 
     private void manejarClicCasilla(int fila, int col) {
-        try {
-            if (modoInvocacionActivo) {
-                if (Math.abs(fila - origenFilaSeleccionada) <= 1 && Math.abs(col - origenColSeleccionada) <= 1) {
-                    if (board[fila][col] == null) {
-                        board[fila][col] = new Zombie(bandoActual());
-                        ruletaPanel.mostrarMensajeEstado("¡Zombie Invocado con éxito!", Color.GREEN);
-                        cambiarTurno();
-                        return;
-                    }
-                }
-                modoInvocacionActivo = false;
-                Piece pSeleccionada = board[origenFilaSeleccionada][origenColSeleccionada];
-                resaltarMovimientosValidos(origenFilaSeleccionada, origenColSeleccionada, pSeleccionada);
-                ruletaPanel.mostrarMensajeEstado("Invocación no realizada. Selecciona una opción válida.", Color.YELLOW);
-                return;
-            }
-
-            if (modoChuparSangreActivo) {
-                Piece atacante = board[origenFilaSeleccionada][origenColSeleccionada];
-                Piece objetivo = board[fila][col];
-
-                if (atacante instanceof Vampire && objetivo != null && !objetivo.getBando().equalsIgnoreCase(bandoActual())) {
-                    int dFila = Math.abs(fila - origenFilaSeleccionada);
-                    int dCol = Math.abs(col - origenColSeleccionada);
-
-                    if (dFila <= 1 && dCol <= 1) {
-                        ((Vampire) atacante).chuparSangre(objetivo);
-                        ruletaPanel.mostrarMensajeEstado("¡Has chupado sangre! Drenaste 1 punto de vida al enemigo.", Color.MAGENTA);
-                        procesarResultadoAtaque(objetivo, fila, col);
-                        return;
-                    }
-                }
-
-                modoChuparSangreActivo = false;
-                resaltarMovimientosValidos(origenFilaSeleccionada, origenColSeleccionada, atacante);
-                ruletaPanel.mostrarMensajeEstado("Habilidad no realizada. Selecciona un enemigo adyacente.", Color.YELLOW);
-                return;
-            }
-
-            if (modoAtaqueActivo) {
-                Piece atacante = board[origenFilaSeleccionada][origenColSeleccionada];
-                Piece objetivo = board[fila][col];
-
-                if (objetivo != null && !objetivo.getBando().equalsIgnoreCase(bandoActual())) {
-                    int dFila = Math.abs(fila - origenFilaSeleccionada);
-                    int dCol = Math.abs(col - origenColSeleccionada);
-
-                    if (dFila <= 1 && dCol <= 1) {
-                        objetivo.recibirDano(atacante.getAtaque(), false);
-                        procesarResultadoAtaque(objetivo, fila, col);
-                        return;
-                    } 
-                    else if (atacante instanceof Death) {
-                        int df = Integer.compare(fila, origenFilaSeleccionada);
-                        int dc = Integer.compare(col, origenColSeleccionada);
-
-                        if (validarAtaqueDistanciaRecursivo(origenFilaSeleccionada, origenColSeleccionada, df, dc, 1, 2)) {
-                            int danoAjustado = Math.max(1, atacante.getAtaque() / 2);
-                            objetivo.recibirDano(danoAjustado, true); 
-                            ruletaPanel.mostrarMensajeEstado("¡Lanza lanzada! " + danoAjustado + " de daño directo a la vida.", Color.ORANGE);
-                            procesarResultadoAtaque(objetivo, fila, col);
-                            return;
-                        }
-                    }
-                }
-
-                modoAtaqueActivo = false;
-                resaltarMovimientosValidos(origenFilaSeleccionada, origenColSeleccionada, atacante);
-                ruletaPanel.mostrarMensajeEstado("Ataque no válido. Selecciona un enemigo alcanzable.", Color.YELLOW);
-                return;
-            }
-
-            if (tipoPiezaPermitida == null) {
-                ruletaPanel.mostrarMensajeEstado("Primero debes girar la ruleta para obtener una pieza.", new Color(230, 100, 100));
-                return;
-            }
-
-            if (origenFilaSeleccionada == -1 && origenColSeleccionada == -1) {
-                Piece p = board[fila][col];
-
-                if (p == null) {
-                    ruletaPanel.mostrarMensajeEstado("Casilla vacía. Selecciona una de tus piezas.", Color.YELLOW);
+    try {
+        if (modoInvocacionActivo) {
+            if (Math.abs(fila - origenFilaSeleccionada) <= 1 && Math.abs(col - origenColSeleccionada) <= 1) {
+                if (board[fila][col] == null) {
+                    board[fila][col] = new Zombie(bandoActual());
+                    ruletaPanel.mostrarMensajeEstado("¡Zombie Invocado con éxito!", Color.GREEN);
+                    actualizarTableroVisual();
+                    programarCambioDeTurno();
                     return;
                 }
-
-                if (!p.getBando().equalsIgnoreCase(bandoActual())) {
-                    ruletaPanel.mostrarMensajeEstado("Esa pieza le pertenece a tu oponente.", new Color(230, 100, 100));
-                    return;
-                }
-
-                boolean esSeleccionValida = p.getTipo().equalsIgnoreCase(tipoPiezaPermitida) 
-                        || (tipoPiezaPermitida.equalsIgnoreCase("Muerte") && p instanceof Zombie);
-
-                if (!esSeleccionValida) {
-                    ruletaPanel.mostrarMensajeEstado("Debes mover una pieza de tipo: " + tipoPiezaPermitida, Color.YELLOW);
-                    return;
-                }
-
-                origenFilaSeleccionada = fila;
-                origenColSeleccionada = col;
-                ruletaPanel.actualizarStatsPieza(p);
-                resaltarMovimientosValidos(fila, col, p);
-                ruletaPanel.mostrarMensajeEstado("Ficha seleccionada. Muévela o realiza una acción.", Color.WHITE);
-                return;
             }
-
-            if (origenFilaSeleccionada == fila && origenColSeleccionada == col) {
-                limpiarSeleccion();
-                ruletaPanel.mostrarMensajeEstado("Selección cancelada.", Color.WHITE);
-                return;
-            }
-
-            Piece piezaAMover = board[origenFilaSeleccionada][origenColSeleccionada];
-            if (board[fila][col] != null || !piezaAMover.esMovimientoValido(origenFilaSeleccionada, origenColSeleccionada, fila, col)) {
-                ruletaPanel.mostrarMensajeEstado("Movimiento no permitido. Selecciona una casilla válida.", new Color(230, 100, 100));
-                return;
-            }
-
-            board[fila][col] = piezaAMover;
-            board[origenFilaSeleccionada][origenColSeleccionada] = null;
-
-            actualizarTableroVisual();
-            cambiarTurno();
-
-        } catch (Exception e) {
-            System.err.println("Error en casilla: " + e.getMessage());
+            modoInvocacionActivo = false;
+            Piece pSeleccionada = board[origenFilaSeleccionada][origenColSeleccionada];
+            resaltarMovimientosValidos(origenFilaSeleccionada, origenColSeleccionada, pSeleccionada);
+            ruletaPanel.mostrarMensajeEstado("Invocación no realizada. Selecciona una opción válida.", Color.YELLOW);
+            return;
         }
-    }
 
-    private void procesarResultadoAtaque(Piece objetivo, int fila, int col) {
+        if (modoChuparSangreActivo) {
+            Piece atacante = board[origenFilaSeleccionada][origenColSeleccionada];
+            Piece objetivo = board[fila][col];
+
+            if (atacante instanceof Vampire && objetivo != null && !objetivo.getBando().equalsIgnoreCase(bandoActual())) {
+                int distFila = Math.abs(fila - origenFilaSeleccionada);
+                int distCol = Math.abs(col - origenColSeleccionada);
+
+                if (distFila <= 1 && distCol <= 1) {
+                    ((Vampire) atacante).chuparSangre(objetivo);
+                    procesarResultadoAtaque(objetivo, fila, col, "¡Has chupado sangre!", Color.MAGENTA);
+                    return;
+                }
+            }
+
+            modoChuparSangreActivo = false;
+            resaltarMovimientosValidos(origenFilaSeleccionada, origenColSeleccionada, atacante);
+            ruletaPanel.mostrarMensajeEstado("Habilidad no realizada. Selecciona un enemigo adyacente.", Color.YELLOW);
+            return;
+        }
+
+        if (modoAtaqueActivo) {
+            Piece atacante = board[origenFilaSeleccionada][origenColSeleccionada];
+            Piece objetivo = board[fila][col];
+
+            if (objetivo != null && !objetivo.getBando().equalsIgnoreCase(bandoActual())) {
+                int distFila = Math.abs(fila - origenFilaSeleccionada);
+                int distCol = Math.abs(col - origenColSeleccionada);
+
+                if (distFila <= 1 && distCol <= 1) {
+                    objetivo.recibirDano(atacante.getAtaque(), false);
+                    procesarResultadoAtaque(objetivo, fila, col, null, null);
+                    return;
+                } 
+                else if (atacante instanceof Death) {
+                    int df = Integer.compare(fila, origenFilaSeleccionada);
+                    int dc = Integer.compare(col, origenColSeleccionada);
+
+                    if (validarAtaqueDistanciaRecursivo(origenFilaSeleccionada, origenColSeleccionada, df, dc, 1, 2)) {
+                        int danoAjustado = Math.max(1, atacante.getAtaque() / 2);
+                        objetivo.recibirDano(danoAjustado, true); 
+                        procesarResultadoAtaque(objetivo, fila, col, "¡Guadaña lanzada! " + danoAjustado + " de daño directo a la vida.", Color.ORANGE);
+                        return;
+                    }
+                }
+            }
+
+            modoAtaqueActivo = false;
+            resaltarMovimientosValidos(origenFilaSeleccionada, origenColSeleccionada, atacante);
+            ruletaPanel.mostrarMensajeEstado("Ataque no válido. Selecciona un enemigo alcanzable.", Color.YELLOW);
+            return;
+        }
+
+        if (tipoPiezaPermitida == null) {
+            ruletaPanel.mostrarMensajeEstado("Primero debes girar la ruleta para obtener una pieza.", new Color(230, 100, 100));
+            return;
+        }
+
+        if (origenFilaSeleccionada == -1 && origenColSeleccionada == -1) {
+            Piece p = board[fila][col];
+
+            if (p == null) {
+                ruletaPanel.mostrarMensajeEstado("Casilla vacía. Selecciona una de tus piezas.", Color.YELLOW);
+                return;
+            }
+
+            if (!p.getBando().equalsIgnoreCase(bandoActual())) {
+                ruletaPanel.mostrarMensajeEstado("Esa pieza le pertenece a tu oponente.", new Color(230, 100, 100));
+                return;
+            }
+
+            boolean esSeleccionValida = p.getTipo().equalsIgnoreCase(tipoPiezaPermitida) 
+                    || (tipoPiezaPermitida.equalsIgnoreCase("Muerte") && p instanceof Zombie);
+
+            if (!esSeleccionValida) {
+                ruletaPanel.mostrarMensajeEstado("Debes mover una pieza de tipo: " + tipoPiezaPermitida, Color.YELLOW);
+                return;
+            }
+
+            origenFilaSeleccionada = fila;
+            origenColSeleccionada = col;
+            ruletaPanel.actualizarStatsPieza(p);
+            resaltarMovimientosValidos(fila, col, p);
+            ruletaPanel.mostrarMensajeEstado("Ficha seleccionada. Muévela o realiza una acción.", Color.WHITE);
+            return;
+        }
+
+        if (origenFilaSeleccionada == fila && origenColSeleccionada == col) {
+            limpiarSeleccion();
+            ruletaPanel.mostrarMensajeEstado("Selección cancelada.", Color.WHITE);
+            return;
+        }
+
+        Piece piezaAMover = board[origenFilaSeleccionada][origenColSeleccionada];
+        if (board[fila][col] != null || !piezaAMover.esMovimientoValido(origenFilaSeleccionada, origenColSeleccionada, fila, col, board)) {
+            ruletaPanel.mostrarMensajeEstado("Movimiento no permitido. Selecciona una casilla válida.", new Color(230, 100, 100));
+            return;
+        }
+
+        board[fila][col] = piezaAMover;
+        board[origenFilaSeleccionada][origenColSeleccionada] = null;
+
+        actualizarTableroVisual();
+        cambiarTurno();
+
+    } catch (Exception e) {
+        System.err.println("Error en casilla: " + e.getMessage());
+    }
+}
+
+   
+    private void procesarResultadoAtaque(Piece objetivo, int fila, int col, String mensajeAccion, Color colorAccion) {
+        String mensajeFinal;
+        Color colorFinal;
+
         if (!objetivo.estaViva()) {
             board[fila][col] = null;
-            ruletaPanel.mostrarMensajeEstado("¡Has destruido la pieza enemiga!", Color.GREEN);
+            mensajeFinal = (mensajeAccion != null)
+                    ? mensajeAccion + " ¡Y has destruido la pieza enemiga!"
+                    : "¡Has destruido la pieza enemiga!";
+            colorFinal = Color.GREEN;
         } else {
-            ruletaPanel.mostrarMensajeEstado("Acción realizada. Vida restante del objetivo: " + objetivo.getVida(), Color.ORANGE);
+            mensajeFinal = (mensajeAccion != null)
+                    ? mensajeAccion + " Vida restante del objetivo: " + objetivo.getVida()
+                    : "Acción realizada. Vida restante del objetivo: " + objetivo.getVida();
+            colorFinal = (mensajeAccion != null) ? colorAccion : Color.ORANGE;
         }
-        cambiarTurno();
+
+        ruletaPanel.mostrarMensajeEstado(mensajeFinal, colorFinal);
+        actualizarTableroVisual();
+        programarCambioDeTurno();
+    }
+
+    private void programarCambioDeTurno() {
+        Timer timerRetardo = new Timer(RETARDO_MENSAJE_ACCION_MS, e -> cambiarTurno());
+        timerRetardo.setRepeats(false);
+        timerRetardo.start();
     }
 
     private void resaltarMovimientosValidos(int fOri, int cOri, Piece p) {
@@ -613,7 +633,7 @@ public class BoardPanel extends JPanel implements RuletaPanel.OnRuletaFinishedLi
 
         for (int r = 0; r < 6; r++) {
             for (int c = 0; c < 6; c++) {
-                if (board[r][c] == null && p.esMovimientoValido(fOri, cOri, r, c)) {
+                if (board[r][c] == null && p.esMovimientoValido(fOri, cOri, r, c, board)) {
                     gridButtons[r][c].setBorder(BorderFactory.createLineBorder(new Color(50, 255, 100), 2));
                 }
             }

@@ -117,7 +117,7 @@ public class RuletaPanel extends JPanel {
         panelMensajeContenedor.setLayout(new BorderLayout());
         
         // Fijar dimensiones strictly para evitar redimensionamientos
-        Dimension dimMensaje = new Dimension(220, 42);
+        Dimension dimMensaje = new Dimension(220, 68);
         panelMensajeContenedor.setPreferredSize(dimMensaje);
         panelMensajeContenedor.setMinimumSize(dimMensaje);
         panelMensajeContenedor.setMaximumSize(dimMensaje);
@@ -296,8 +296,14 @@ public class RuletaPanel extends JPanel {
         repaint();
     }
 
-    public void deshabilitarBotonGiro() {
+      public void deshabilitarBotonGiro() {
         btnGirar.setEnabled(false);
+    }
+
+    public void habilitarBotonGiroSiQuedanGiros() {
+        if (girosRestantes > 0) {
+            btnGirar.setEnabled(true);
+        }
     }
 
     public void mostrarMensajeEstado(String msj, Color color) {

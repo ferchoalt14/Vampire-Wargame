@@ -3,16 +3,12 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 package Game;
-
 import javax.swing.ImageIcon;
 import java.awt.Image;
-
 public class Zombie extends Piece {
-
     public Zombie(String bando) {
         super(bando, "Zombie", 1, 1, 0);
     }
-
     protected void cargarIcono() {
         try {
             String sufijo = bando.equalsIgnoreCase("BLANCO") ? "B" : "N";
@@ -27,12 +23,11 @@ public class Zombie extends Piece {
             this.icon = null;
         }
     }
-
   @Override
-    public boolean esMovimientoValido(int fOri, int cOri, int fDes, int cDes) {
+    public boolean esMovimientoValido(int fOri, int cOri, int fDes, int cDes, Piece[][] tablero) {
         int dFila = Math.abs(fDes - fOri);
         int dCol = Math.abs(cDes - cOri);
-        // El zombie se mueve 1 casilla en cualquier dirección
+        
         return (dFila <= 1 && dCol <= 1) && !(dFila == 0 && dCol == 0);
     }
 }

@@ -35,10 +35,10 @@ public class LogInMenu extends JFrame {
 
         this.setTitle("Vampire Wargame - Menú de Inicio");
         
-        // Configuración para pantalla grande e inicio maximizado
+        // Configuración para pantalla grande e inicio 
         this.setSize(1280, 720);
         this.setMinimumSize(new Dimension(1024, 680));
-        this.setExtendedState(JFrame.MAXIMIZED_BOTH); // Maximiza la ventana al iniciar
+        this.setExtendedState(JFrame.MAXIMIZED_BOTH); 
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setResizable(true);
         this.setLocationRelativeTo(null);
@@ -50,10 +50,10 @@ public class LogInMenu extends JFrame {
         cardLayout = new CardLayout();
         cardsPanel = new JPanel(cardLayout);
 
-        // 1. Creación del panel de botones inicial
+        // Creación del panel de botones inicial
         JPanel menuPanel = buildMenuButtonsPanel();
 
-        // Declaramos la variable para usarla en las lambdas
+       
         final MainMenu[] mainMenuRef = new MainMenu[1];
 
         AccountPanel accountPanel = new AccountPanel(
@@ -71,7 +71,7 @@ public class LogInMenu extends JFrame {
                 }
         );
 
-        // Instancia del nuevo panel de reportes
+        // Instancia del panel de reportes
         ReportsPanel reportsPanel = new ReportsPanel(
                 brain,
                 () -> {
